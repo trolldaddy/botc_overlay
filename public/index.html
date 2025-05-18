@@ -22,15 +22,16 @@
     .panel.show { transform: translateX(0); }
     .toggle-button {
       position: fixed;
-      top: 50%;
-      right: 10px;
-      transform: translateY(-50%);
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
       z-index: 1001;
-      background: rgba(0, 0, 0, 0.7);
-      color: #fff;
+      background: black;
+      color: white;
       border: none;
       padding: 10px 20px;
       cursor: pointer;
+      border-radius: 5px;
     }
   </style>
 </head>
@@ -68,9 +69,6 @@
       leftPanel.classList.toggle('show');
       rightPanel.classList.toggle('show');
     }
-
-    // 自動執行載入（如果你要先測試按鈕，可以先註解這行）
-    // buildPanels();
   </script>
 </body>
 </html>
