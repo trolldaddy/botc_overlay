@@ -2,21 +2,101 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <title>血染鐘樓 Twitch 插件示範</title>
-  <link rel="stylesheet" href="style.css">
+  <title>血染鐘樓 - 觀眾座位顯示</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: auto; padding: 20px; }
+    .seat { margin-bottom: 10px; }
+  </style>
 </head>
 <body>
-  <div id="seating-chart">
-    <div class="seat" data-character="washerwoman">玩家1</div>
-    <div class="seat" data-character="librarian">玩家2</div>
-    <div class="seat" data-character="undertaker">玩家3</div>
-  </div>
+  <h1>血染鐘樓 - 觀眾座位顯示</h1>
+  <p>顯示實況主最新設定的座位與角色。</p>
+  <div id="seating-display">載入中...</div>
+  <button onclick="loadSeating()">手動重新載入</button>
 
-  <button id="show-script">查看劇本角色</button>
+  <script>
+    const characterNameMap = {
+      "washerwoman": "洗衣婦",
+      "librarian": "圖書館員",
+      "investigator": "調查員",
+      "chef": "廚師",
+      "empath": "共情者",
+      "fortune_teller": "占卜師",
+      "undertaker": "喪葬者",
+      "monk": "和尚",
+      "ravenkeeper": "烏鴉守衛",
+      "virgin": "處女",
+      "slayer": "殺手",
+      "soldier": "士兵",
+      "mayor": "市長",
+      "butler": "管家",
+      "drunk": "酒鬼",
+      "recluse": "隱士",
+      "saint": "聖人",
+      "poisoner": "投毒者",
+      "spy": "間諜",
+      "scarlet_woman": "緋紅女子",
+      "baron": "男爵",
+      "imp": "惡魔",
+      "fang_gu": "方古",
+      "vortox": "渦托克斯",
+      "shabaloth": "沙巴洛斯",
+      "no_dashii": "野田氏",
+      "snake_charmer": "魅蛇者",
+      "artist": "藝術家",
+      "juggler": "雜技師",
+      "clockmaker": "鐘錶匠",
+      "dreamer": "夢者",
+      "mathematician": "數學家",
+      "seamstress": "裁縫師",
+      "town_crier": "鎮吶喊者",
+      "flowergirl": "花童",
+      "oracle": "神諭者",
+      "philosopher": "哲學家",
+      "grandmother": "祖母",
+      "sweetheart": "心上人",
+      "evil_twin": "邪惡雙胞胎",
+      "pit_hag": "坑巫",
+      "godfather": "教父",
+      "devil's_advocate": "魔鬼代言人",
+      "witch": "女巫",
+      "zhen": "鎮長",
+      "tea_lady": "茶女",
+      "noble": "貴族",
+      "bianlianshi": "變臉師",
+      "yinyangshi": "陰陽師",
+      "fisherman": "漁夫",
+      "widow": "寡婦",
+      "shijie": "使節",
+      "moonchild": "月之子",
+      "ojo": "鬼隱",
+      "kazali": "鬼火",
+      "leviathan": "利維坦",
+      "qiongqi": "窮奇"
+    };
 
-  <div id="tooltip" class="tooltip"></div>
-  <div id="script-overview" class="hidden"></div>
+    function loadSeating() {
+      fetch('/api/seating')
+        .then(response => response.json())
+        .then(data => {
+          const container = document.getElementById('seating-display');
+          container.innerHTML = '';
+          if (Object.keys(data).length === 0) {
+            container.textContent = '尚未設定任何座位。';
+            return;
+          }
+          Object.entries(data).forEach(([seat, role]) => {
+            const cnName = characterNameMap[role] || role || '（未指定）';
+            const div = document.createElement('div');
+            div.className = 'seat';
+            div.textContent = `${seat.replace('seat', '座位 ')}: ${cnName} (${role || '未指定'})`;
+            container.appendChild(div);
+          });
+        });
+    }
 
-  <script src="script.js"></script>
+    // 初次載入
+    loadSeating();
+  </script>
 </body>
 </html>
