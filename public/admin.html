@@ -47,19 +47,25 @@
     }
 
     // 提交設定
-    function saveSeating() {
-      const seating = {};
-      for (let i = 1; i <= seatCount; i++) {
-        const value = document.getElementById(`seat-${i}`).value;
-        seating[`seat${i}`] = value;
-      }
+function buildForm() {
+  const container = document.getElementById('seating-form');
+  for (let i = 1; i <= seatCount; i++) {
+    const seatDiv = document.createElement('div');
+    seatDiv.className = 'seat';
+    seatDiv.innerHTML = `座位 ${i}: <select id="seat-${i}"><option value="">（未指定）</option></select>`;
+    container.appendChild(seatDiv);
 
-      fetch('/api/seating', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(seating)
-      }).then(() => alert('座位設定已儲存'));
-    }
+    const select = seatDiv.querySelector('select');
+    characterList.forEach(char => {
+      const option = document.createElement('option');
+      option.value = char.id;
+      const cnName = characterNameMap[char.id] || char.id;
+      option.textContent = `${cnName} (${char.id})`;
+      select.appendChild(option);
+    });
+  }
+}
+
 
     const characterNameMap = {
   "washerwoman": "洗衣婦",
