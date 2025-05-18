@@ -1,0 +1,14 @@
+{
+  "washerwoman": {
+    "name": "洗衣婦",
+    "ability": "你會知道兩位玩家中有一位是特定好人角色"
+  },
+  "librarian": {
+    "name": "圖書館員",
+    "ability": "你會知道兩位玩家中有一位是外來者"
+  },
+  "undertaker": {
+    "name": "喪葬者",
+    "ability": "每當有人被處決時，你會知道該角色是誰"
+  }
+}
