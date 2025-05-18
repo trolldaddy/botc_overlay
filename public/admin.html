@@ -11,10 +11,10 @@
 </head>
 <body>
   <h1>血染鐘樓座位管理</h1>
-  <p>請為每個座位分配角色。<br>角色選單來自 <code>custom-list.json</code> 並轉換為中文名稱。</p>
+  <p>請選擇玩家人數並按下「更新座位選單」產生座位設定。</p>
   
   <label for="player-count">選擇玩家人數（8~15人）:</label>
-  <select id="player-count" onchange="buildForm()">
+  <select id="player-count">
     <option value="8">8</option>
     <option value="9">9</option>
     <option value="10">10</option>
@@ -24,13 +24,13 @@
     <option value="14">14</option>
     <option value="15">15</option>
   </select>
+  <button onclick="buildForm()">更新座位選單</button>
 
   <div id="seating-form"></div>
   <button onclick="saveSeating()">儲存設定</button>
 
   <script>
     let characterList = [];
-
     const characterNameMap = {
       "washerwoman": "洗衣婦",
       "librarian": "圖書館員",
@@ -85,4 +85,54 @@
       "widow": "寡婦",
       "shijie": "使節",
       "moonchild": "月之子",
-      "ojo": "鬼
+      "ojo": "鬼隱",
+      "kazali": "鬼火",
+      "leviathan": "利維坦",
+      "qiongqi": "窮奇"
+    };
+
+    fetch('custom-list.json')
+      .then(response => response.json())
+      .then(data => {
+        characterList = data;
+      });
+
+    function buildForm() {
+      const container = document.getElementById('seating-form');
+      container.innerHTML = '';
+      const playerCount = parseInt(document.getElementById('player-count').value, 10);
+
+      for (let i = 1; i <= playerCount; i++) {
+        const seatDiv = document.createElement('div');
+        seatDiv.className = 'seat';
+        seatDiv.innerHTML = `座位 ${i}: <select id="seat-${i}"><option value="">（未指定）</option></select>`;
+        container.appendChild(seatDiv);
+
+        const select = seatDiv.querySelector('select');
+        characterList.forEach(char => {
+          const option = document.createElement('option');
+          option.value = char.id;
+          const cnName = characterNameMap[char.id] || char.id;
+          option.textContent = `${cnName} (${char.id})`;
+          select.appendChild(option);
+        });
+      }
+    }
+
+    function saveSeating() {
+      const seating = {};
+      const playerCount = parseInt(document.getElementById('player-count').value, 10);
+      for (let i = 1; i <= playerCount; i++) {
+        const value = document.getElementById(`seat-${i}`).value;
+        seating[`seat${i}`] = value;
+      }
+
+      fetch('/api/seating', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(seating)
+      }).then(() => alert('座位設定已儲存'));
+    }
+  </script>
+</body>
+</html>
