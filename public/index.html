@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <title>血染鐘樓 劇本總覽</title>
+  <title>血染鐘樓 劇本總覽 - 測試版</title>
   <style>
     body { margin: 0; font-family: Arial, sans-serif; overflow-x: hidden; }
     .panel {
@@ -36,21 +36,13 @@
 </head>
 <body>
   <button class="toggle-button" onclick="togglePanels()">📜 劇本</button>
+  <button style="position: fixed; top: 10px; left: 10px; z-index: 1002;" onclick="buildPanels()">手動載入測試</button>
   <div id="leftPanel" class="panel"></div>
   <div id="rightPanel" class="panel right"></div>
 
   <script>
     const characterDataMap = {
       "washerwoman": { name: "洗衣婦", team: "good" },
-      "librarian": { name: "圖書館員", team: "good" },
-      "investigator": { name: "調查員", team: "good" },
-      "chef": { name: "廚師", team: "good" },
-      "empath": { name: "共情者", team: "good" },
-      "fortune_teller": { name: "占卜師", team: "good" },
-      "undertaker": { name: "送葬者", team: "good" },
-      "monk": { name: "和尚", team: "good" },
-      "ravenkeeper": { name: "烏鴉守衛", team: "good" },
-      "virgin": { name: "處女", team: "outsider" },
       "baron": { name: "男爵", team: "minion" },
       "imp": { name: "惡魔", team: "demon" }
     };
@@ -77,7 +69,8 @@
       rightPanel.classList.toggle('show');
     }
 
-    buildPanels();
+    // 自動執行載入（如果你要先測試按鈕，可以先註解這行）
+    // buildPanels();
   </script>
 </body>
 </html>
