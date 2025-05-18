@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <title>實況主座位管理介面</title>
+  <title>血染鐘樓 - 實況主管理介面</title>
   <style>
     body { font-family: Arial, sans-serif; max-width: 800px; margin: auto; padding: 20px; }
     select { margin-left: 10px; }
@@ -11,114 +11,78 @@
 </head>
 <body>
   <h1>血染鐘樓座位管理</h1>
-  <p>請為每個座位分配角色。<br>角色選單會根據 <code>custom-list.json</code> 自動載入。</p>
+  <p>請為每個座位分配角色。<br>角色選單來自 <code>custom-list.json</code> 並轉換為中文名稱。</p>
+  
+  <label for="player-count">選擇玩家人數（8~15人）:</label>
+  <select id="player-count" onchange="buildForm()">
+    <option value="8">8</option>
+    <option value="9">9</option>
+    <option value="10">10</option>
+    <option value="11">11</option>
+    <option value="12">12</option>
+    <option value="13">13</option>
+    <option value="14">14</option>
+    <option value="15">15</option>
+  </select>
+
   <div id="seating-form"></div>
   <button onclick="saveSeating()">儲存設定</button>
 
   <script>
-    const seatCount = 15;
     let characterList = [];
 
-    // 載入角色清單
-    fetch('custom-list.json')
-      .then(response => response.json())
-      .then(data => {
-        characterList = data;
-        buildForm();
-      });
-
-    // 產生表單
-    function buildForm() {
-      const container = document.getElementById('seating-form');
-      for (let i = 1; i <= seatCount; i++) {
-        const seatDiv = document.createElement('div');
-        seatDiv.className = 'seat';
-        seatDiv.innerHTML = `座位 ${i}: <select id="seat-${i}"><option value="">（未指定）</option></select>`;
-        container.appendChild(seatDiv);
-
-        const select = seatDiv.querySelector('select');
-        characterList.forEach(char => {
-          const option = document.createElement('option');
-          option.value = char.id;
-          option.textContent = char.id;
-          select.appendChild(option);
-        });
-      }
-    }
-
-    // 提交設定
-function buildForm() {
-  const container = document.getElementById('seating-form');
-  for (let i = 1; i <= seatCount; i++) {
-    const seatDiv = document.createElement('div');
-    seatDiv.className = 'seat';
-    seatDiv.innerHTML = `座位 ${i}: <select id="seat-${i}"><option value="">（未指定）</option></select>`;
-    container.appendChild(seatDiv);
-
-    const select = seatDiv.querySelector('select');
-    characterList.forEach(char => {
-      const option = document.createElement('option');
-      option.value = char.id;
-      const cnName = characterNameMap[char.id] || char.id;
-      option.textContent = `${cnName} (${char.id})`;
-      select.appendChild(option);
-    });
-  }
-}
-
-
     const characterNameMap = {
-  "washerwoman": "洗衣婦",
-  "librarian": "圖書館員",
-  "investigator": "調查員",
-  "chef": "廚師",
-  "empath": "共情者",
-  "fortune_teller": "占卜師",
-  "undertaker": "喪葬者",
-  "monk": "和尚",
-  "ravenkeeper": "烏鴉守衛",
-  "virgin": "處女",
-  "slayer": "殺手",
-  "soldier": "士兵",
-  "mayor": "市長",
-  "butler": "管家",
-  "drunk": "酒鬼",
-  "recluse": "隱士",
-  "saint": "聖人",
-  "poisoner": "投毒者",
-  "spy": "間諜",
-  "scarlet_woman": "緋紅女子",
-  "baron": "男爵",
-  "imp": "惡魔",
-  "fang_gu": "方古",
-  "vortox": "渦托克斯",
-  "shabaloth": "沙巴洛斯",
-  "no_dashii": "野田氏",
-  "snake_charmer": "魅蛇者",
-  "artist": "藝術家",
-  "juggler": "雜技師",
-  "clockmaker": "鐘錶匠",
-  "dreamer": "夢者",
-  "mathematician": "數學家",
-  "seamstress": "裁縫師",
-  "town_crier": "鎮吶喊者",
-  "flowergirl": "花童",
-  "oracle": "神諭者",
-  "philosopher": "哲學家",
-  "grandmother": "祖母",
-  "sweetheart": "心上人",
-  "evil_twin": "邪惡雙胞胎",
-  "pit_hag": "坑巫",
-  "godfather": "教父",
-  "devil's_advocate": "魔鬼代言人",
-  "witch": "女巫",
-  "fang_gu": "方古",
-  "vortox": "渦托克斯",
-  "shabaloth": "沙巴洛斯",
-  "no_dashii": "野田氏",
-  // 如有其他角色，請依此格式新增
-};
-
-  </script>
-</body>
-</html>
+      "washerwoman": "洗衣婦",
+      "librarian": "圖書館員",
+      "investigator": "調查員",
+      "chef": "廚師",
+      "empath": "共情者",
+      "fortune_teller": "占卜師",
+      "undertaker": "喪葬者",
+      "monk": "和尚",
+      "ravenkeeper": "烏鴉守衛",
+      "virgin": "處女",
+      "slayer": "殺手",
+      "soldier": "士兵",
+      "mayor": "市長",
+      "butler": "管家",
+      "drunk": "酒鬼",
+      "recluse": "隱士",
+      "saint": "聖人",
+      "poisoner": "投毒者",
+      "spy": "間諜",
+      "scarlet_woman": "緋紅女子",
+      "baron": "男爵",
+      "imp": "惡魔",
+      "fang_gu": "方古",
+      "vortox": "渦托克斯",
+      "shabaloth": "沙巴洛斯",
+      "no_dashii": "野田氏",
+      "snake_charmer": "魅蛇者",
+      "artist": "藝術家",
+      "juggler": "雜技師",
+      "clockmaker": "鐘錶匠",
+      "dreamer": "夢者",
+      "mathematician": "數學家",
+      "seamstress": "裁縫師",
+      "town_crier": "鎮吶喊者",
+      "flowergirl": "花童",
+      "oracle": "神諭者",
+      "philosopher": "哲學家",
+      "grandmother": "祖母",
+      "sweetheart": "心上人",
+      "evil_twin": "邪惡雙胞胎",
+      "pit_hag": "坑巫",
+      "godfather": "教父",
+      "devil's_advocate": "魔鬼代言人",
+      "witch": "女巫",
+      "zhen": "鎮長",
+      "tea_lady": "茶女",
+      "noble": "貴族",
+      "bianlianshi": "變臉師",
+      "yinyangshi": "陰陽師",
+      "fisherman": "漁夫",
+      "widow": "寡婦",
+      "shijie": "使節",
+      "moonchild": "月之子",
+      "ojo": "鬼
