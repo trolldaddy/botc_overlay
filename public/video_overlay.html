@@ -4,19 +4,26 @@
   <meta charset="UTF-8">
   <title>BOTC Overlay 測試</title>
   <style>
-    body {
+    html, body {
       margin: 0;
-      background: white;
-      color: black;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: rgba(0, 0, 0, 0.85);
+    }
+    #content {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #fff;
       font-size: 48px;
+      text-align: center;
     }
   </style>
 </head>
 <body>
-  <div>BOTC Overlay 測試成功！</div>
+  <div id="content">BOTC Overlay 測試成功！</div>
 </body>
 </html>
