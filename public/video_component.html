@@ -18,6 +18,13 @@
       border-radius: 8px;
     }
   </style>
+  <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
+  <script>
+    Twitch.ext.onAuthorized(function(auth) {
+      console.log("Twitch Extension 授權成功", auth);
+      document.body.innerHTML = '<div>BOTC 互動元件已授權</div>';
+    });
+  </script>
 </head>
 <body>
   <div>這是 BOTC 互動元件</div>
