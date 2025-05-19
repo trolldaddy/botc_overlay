@@ -1822,7 +1822,7 @@
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/b/b0/Boomdandy.png/240px-Boomdandy.png"
   },
   {
-    "id": "lilmonsta",
+    "id": "lil_monsta",
     "name": "小怪寶",
     "edition": "",
     "team": "demon",
@@ -1857,7 +1857,7 @@
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/7/70/Lleech.png/240px-Lleech.png"
   },
   {
-    "id": "alhadikhia",
+    "id": "al-hadikhia",
     "name": "哈迪寂亞",
     "edition": "",
     "team": "demon",
@@ -2227,7 +2227,7 @@
     "ability": "每個夜晚*，你要選擇一名玩家：他死亡。 [由你決定誰是什麼爪牙，-或+任意數量外來者]"
   },
   {
-    "id": "lordoftyphon",
+    "id": "lord_of_typhon",
     "name": "堤豐之首",
     "edition": "",
     "team": "demon",
@@ -2259,7 +2259,7 @@
     "ability": "每個夜晚*，你要選擇一個角色：他死亡。如果該角色不在場，則由說書人來決定誰會被你殺死。"
   },
   {
-    "id": "牙噶巴卜",
+    "id": "Yaggababble",
     "image": "https://wiki.bloodontheclocktower.com/images/0/08/Icon_yaggababble.png?raw=true",
     "firstNight": 5,
     "firstNightReminder": "Show the Yaggababble their phrase",
@@ -2270,7 +2270,7 @@
     ],
     "remindersGlobal": [],
     "setup": false,
-    "name": "Yaggababble",
+    "name": "牙噶巴卜",
     "team": "demon",
     "ability": "在你的首個夜晚，你會得知一段秘密短語。每次你在白天公開說出這段短語，當天便可能會有一名玩家在這之後死亡。"
   },
