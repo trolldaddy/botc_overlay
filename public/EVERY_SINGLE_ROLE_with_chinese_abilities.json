@@ -1369,7 +1369,7 @@
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/3/35/Balloonist.png/240px-Balloonist.png"
   },
   {
-    "id": "cultleader",
+    "id": "cult_leader",
     "name": "異教領袖",
     "edition": "",
     "team": "townsfolk",
@@ -1538,7 +1538,7 @@
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/f/f3/Choirboy.png/240px-Choirboy.png"
   },
   {
-    "id": "poppygrower",
+    "id": "poppy_grower",
     "name": "罌粟種植者",
     "edition": "",
     "team": "townsfolk",
@@ -2066,7 +2066,7 @@
     "ability": "在你的首個夜晚，你要選擇除你以外的一名玩家：你轉變為他的陣營，即使你已醉酒或中毒，但你不知道你轉變後的陣營。"
   },
   {
-    "id": "plaguedoctor",
+    "id": "plague_doctor",
     "name": "瘟疫醫生",
     "edition": "",
     "image": "https://wiki.bloodontheclocktower.com/images/e/e2/Icon_plaguedoctor.png",
@@ -2128,7 +2128,7 @@
     "ability": "每個夜晚，你要選擇兩名玩家:明天第一名玩家需要「瘋狂」地證明第二名玩家是邪惡的，否則他們之中可能會有人死亡。"
   },
   {
-    "id": "organgrinder",
+    "id": "organ_grinder",
     "name": "街頭風琴手",
     "edition": "",
     "image": "https://wiki.bloodontheclocktower.com/images/6/61/Icon_organgrinder.png",
