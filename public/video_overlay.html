@@ -23,20 +23,20 @@
     .role img { width: 50px; height: 50px; display: block; }
     .category-title { margin-top: 10px; border-bottom: 1px solid #fff; padding-bottom: 5px; }
     #globalTooltip {
-  display: none;
-  position: fixed;
-  background: rgba(0, 0, 0, 0.85);
-  color: #fff;
-  border-radius: 5px;
-  padding: 5px 10px;
-  white-space: normal;
-  max-width: 90vw;
-  z-index: 10000;
-}
+      display: none;
+      position: fixed;
+      background: rgba(0, 0, 0, 0.85);
+      color: #fff;
+      border-radius: 5px;
+      padding: 5px 10px;
+      white-space: normal;
+      max-width: 90vw;
+      z-index: 10000;
+    }
   </style>
 </head>
 <body>
-  <button id="toggleButton">顯示角色女巫</button>
+  <button id="toggleButton">顯示角色</button>
   <div id="leftPanel" class="panel">
     <div class="category-title">鎮民</div>
     <div class="role-grid" id="townsfolkGrid"></div>
@@ -78,7 +78,8 @@
         };
 
         customList.forEach(role => {
-          const ref = referenceMap[role.id];
+          const cleanId = role.id.replace(/_/g, '');
+          const ref = referenceMap[cleanId];
           if (!ref) return;
 
           const displayName = ref.name_zh || ref.name || role.id;
@@ -102,24 +103,17 @@
           container.addEventListener('mouseenter', (e) => {
             globalTooltip.textContent = ability;
             globalTooltip.style.display = 'block';
+
             const rect = container.getBoundingClientRect();
             let offsetX = tooltipDirection === 'right' ? rect.right + 10 : rect.left - globalTooltip.offsetWidth - 10;
             const offsetY = rect.top + window.scrollY;
-            // 計算螢幕寬度與 Tooltip 寬度，確保不超出螢幕邊界
-let tooltipWidth = globalTooltip.offsetWidth;
-let screenWidth = window.innerWidth;
-let adjustedOffsetX = offsetX;
 
-// 若超出畫面右側，往左調整
-if (offsetX + tooltipWidth > screenWidth) {
-  adjustedOffsetX = screenWidth - tooltipWidth - 10;
-}
-// 若超出畫面左側，往右調整
-if (adjustedOffsetX < 0) {
-  adjustedOffsetX = 10;
-}
+            let tooltipWidth = globalTooltip.offsetWidth;
+            let screenWidth = window.innerWidth;
+            if (offsetX + tooltipWidth > screenWidth) offsetX = screenWidth - tooltipWidth - 10;
+            if (offsetX < 0) offsetX = 10;
 
-globalTooltip.style.left = `${adjustedOffsetX}px`;
+            globalTooltip.style.left = `${offsetX}px`;
             globalTooltip.style.top = `${offsetY}px`;
           });
 
