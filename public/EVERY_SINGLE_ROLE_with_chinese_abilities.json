@@ -59,7 +59,7 @@
     "otherNightReminder": "",
     "reminders": [],
     "setup": false,
-    "ability": "在你的首個夜晚，你會得知有多少對相鄰的邪惡玩家。",
+    "ability": "在你的首個夜晚，你會得知有多少對相鄰的邪惡玩家。(兩位算一對，連續三位算兩對)",
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/e/e5/Chef.png/240px-Chef.png"
   },
   {
@@ -74,7 +74,7 @@
     "reminders": [],
     "setup": false,
     "ability": "每個夜晚，你會得知你兩側相鄰的存活玩家中，有多少人是邪惡陣營。",
-    "image": "https://clocktower-wiki.gstonegames.com/images/thumb/4/4e/Empath.png/240px-Emapth.png"
+    "image": "https://clocktower-wiki.gstonegames.com/images/thumb/4/4e/Empath.png/240px-Empath.png"
   },
  {
     "id": "fortuneteller",
@@ -87,7 +87,7 @@
     "otherNightReminder": "The Fortune Teller points to two players. Show the head signal (nod 'yes', shake 'no') for whether one of those players is the Demon.",
     "reminders": ["Red herring"],
     "setup": false,
-    "ability": "每個夜晚，選擇兩名玩家：你會得知其中至少有一名是惡魔與否。你的資訊中有一名善良玩家會被誤判為惡魔。",
+    "ability": "每個夜晚，你要選兩名玩家：你會得知他們當中是否有惡魔。會有一名善良玩家始終被你的能力當作惡魔。",
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/6/67/Fortuneteller.png/240px-Fortuneteller.png"
   },
   {
@@ -115,7 +115,7 @@
     "otherNightReminder": "The previously protected player is no longer protected. The Monk points to a player not themself. Mark that player 'Protected'.",
     "reminders": ["Protected"],
     "setup": false,
-    "ability": "每個夜晚*，選擇一名（不是你自己）玩家：該玩家今晚不會被惡魔殺害。",
+    "ability": "每個夜晚*，選擇一名（不是你自己）玩家：該玩家今晚不受惡魔負面能力影響。",
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/4/44/Monk.png/240px-Monk.png"
   },
   {
@@ -157,7 +157,7 @@
     "otherNightReminder": "",
     "reminders": ["No ability"],
     "setup": false,
-    "ability": "遊戲中僅限一次，在白天，公開選擇一名玩家：如果該玩家是惡魔，他們立即死亡。",
+    "ability": "遊戲中僅限一次，在白天，公開選擇一名玩家：如果該玩家是惡魔，他立即死亡。",
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/6/6e/Slayer.png/240px-Slayer.png"
   },
   {
@@ -298,7 +298,7 @@
     "otherNightReminder": "",
     "reminders": [],
     "setup": true,
-    "ability": "遊戲中會額外加入兩名外來者。",
+    "ability": "遊戲中會額外加入兩名外來者。[+2外來者] ",
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/4/40/Baron.png/240px-Baron.png"
   },
   {
