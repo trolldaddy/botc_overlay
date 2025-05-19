@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
-
 <head>
   <meta charset="UTF-8">
   <title>BOTC 角色總覽</title>
@@ -20,10 +19,7 @@
     .panel.right { right: 0; left: auto; transform: translateX(100%); }
     .panel.show { transform: translateX(0); }
     .role-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-    .role {
-      display: flex; flex-direction: column; align-items: center;
-      position: relative;
-    }
+    .role { display: flex; flex-direction: column; align-items: center; position: relative; }
     .role img { width: 50px; height: 50px; display: block; }
     .tooltip {
       visibility: hidden; background: rgba(0, 0, 0, 0.85); color: #fff; border-radius: 5px;
@@ -31,12 +27,11 @@
       z-index: 9999;
     }
     .role:hover .tooltip { visibility: visible; }
-    .role:hover .tooltip.left { left: calc(100% + 10px); right: auto; top: 50%; transform: translateY(-50%); }
-    .role:hover .tooltip.right { right: calc(100% + 10px); left: auto; top: 50%; transform: translateY(-50%); }
+    .role:hover .tooltip.left { left: calc(100% + 10px); top: 50%; transform: translateY(-50%); }
+    .role:hover .tooltip.right { right: calc(100% + 10px); top: 50%; transform: translateY(-50%); }
     .category-title { margin-top: 10px; border-bottom: 1px solid #fff; padding-bottom: 5px; }
   </style>
 </head>
-
 <body>
   <button id="toggleButton">顯示角色</button>
   <div id="leftPanel" class="panel"></div>
@@ -58,7 +53,6 @@
       try {
         const customList = await fetch('/custom-list.json').then(r => r.json());
         const referenceList = await fetch('/EVERY_SINGLE_ROLE_with_image_placeholders.json').then(r => r.json());
-
         const referenceMap = Object.fromEntries(referenceList.map(r => [r.id, r]));
 
         const townsfolkContent = [];
@@ -73,7 +67,6 @@
           const displayName = ref.name_zh || ref.name || role.id;
           const imgUrl = ref.image || '';
           const ability = ref.ability || '';
-
           const tooltipClass = ref.team === 'townsfolk' ? 'left' : 'right';
 
           const roleHtml = `
@@ -84,15 +77,10 @@
             </div>
           `;
 
-          if (ref.team === 'townsfolk') {
-            townsfolkContent.push(roleHtml);
-          } else if (ref.team === 'outsider') {
-            outsiderContent.push(roleHtml);
-          } else if (ref.team === 'minion') {
-            minionContent.push(roleHtml);
-          } else if (ref.team === 'demon') {
-            demonContent.push(roleHtml);
-          }
+          if (ref.team === 'townsfolk') townsfolkContent.push(roleHtml);
+          else if (ref.team === 'outsider') outsiderContent.push(roleHtml);
+          else if (ref.team === 'minion') minionContent.push(roleHtml);
+          else if (ref.team === 'demon') demonContent.push(roleHtml);
         });
 
         leftPanel.innerHTML = `
@@ -117,5 +105,4 @@
     loadRoles();
   </script>
 </body>
-
 </html>
