@@ -13,11 +13,13 @@
       z-index: 1001;
     }
     .panel {
-      position: fixed; top: 0; bottom: 0; width: 80%; left: 10%; background: rgba(0,0,0,0.85);
-      overflow-y: auto; padding: 10px; transform: translateY(-100%);
+      position: fixed; top: 0; bottom: 0; width: 300px; background: rgba(0,0,0,0.85);
+      overflow-y: auto; padding: 10px; transform: translateX(-100%);
       transition: transform 0.3s ease; color: #fff;
     }
-    .panel.show { transform: translateY(0); }
+    .panel.right { right: 0; left: auto; transform: translateX(100%); }
+    .panel.show { transform: translateX(0); }
+    .category-title { font-size: 1.2em; margin-top: 10px; border-bottom: 1px solid #fff; padding-bottom: 5px; }
     .role {
       display: inline-block; width: 50px; text-align: center; margin: 5px; position: relative;
     }
@@ -33,16 +35,19 @@
 
 <body>
   <button id="toggleButton">顯示角色</button>
-  <div id="mainPanel" class="panel"></div>
+  <div id="leftPanel" class="panel"></div>
+  <div id="rightPanel" class="panel right"></div>
 
   <script>
     const toggleButton = document.getElementById('toggleButton');
-    const mainPanel = document.getElementById('mainPanel');
+    const leftPanel = document.getElementById('leftPanel');
+    const rightPanel = document.getElementById('rightPanel');
 
     let isVisible = false;
     toggleButton.addEventListener('click', () => {
       isVisible = !isVisible;
-      mainPanel.classList.toggle('show', isVisible);
+      leftPanel.classList.toggle('show', isVisible);
+      rightPanel.classList.toggle('show', isVisible);
     });
 
     async function loadRoles() {
@@ -52,24 +57,41 @@
 
         const referenceMap = Object.fromEntries(referenceList.map(r => [r.id, r]));
 
-        const roleEntries = customList.map(role => {
+        const categories = { townsfolk: [], outsider: [], minion: [], demon: [] };
+
+        customList.forEach(role => {
           const ref = referenceMap[role.id];
-          if (!ref) return '';
+          if (!ref) return;
 
           const displayName = ref.name_zh || ref.name || role.id;
           const imgUrl = ref.image || '';
           const ability = ref.ability || '';
 
-          return `
+          const roleHtml = `
             <div class="role">
               <img src="${imgUrl}" alt="${displayName}">
               <div>${displayName}</div>
               <div class="tooltip">${ability}</div>
             </div>
           `;
-        }).join('');
 
-        mainPanel.innerHTML = roleEntries;
+          if (ref.team === 'townsfolk') {
+            categories.townsfolk.push(roleHtml);
+          } else if (ref.team === 'outsider') {
+            categories.outsider.push(roleHtml);
+          } else if (ref.team === 'minion') {
+            categories.minion.push(roleHtml);
+          } else if (ref.team === 'demon') {
+            categories.demon.push(roleHtml);
+          }
+        });
+
+        leftPanel.innerHTML = `<div class="category-title">鎮民</div>${categories.townsfolk.join('')}`;
+        rightPanel.innerHTML = `
+          <div class="category-title">外來者</div>${categories.outsider.join('')}
+          <div class="category-title">爪牙</div>${categories.minion.join('')}
+          <div class="category-title">惡魔</div>${categories.demon.join('')}
+        `;
 
       } catch (err) {
         console.error('載入角色資料失敗:', err);
