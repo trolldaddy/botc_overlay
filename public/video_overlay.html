@@ -36,7 +36,7 @@
   </style>
 </head>
 <body>
-  <button id="toggleButton">顯示角色大</button>
+  <button id="toggleButton">顯示角色中文</button>
   <div id="leftPanel" class="panel">
     <div class="category-title">鎮民</div>
     <div class="role-grid" id="townsfolkGrid"></div>
@@ -67,7 +67,7 @@
     async function loadRoles() {
       try {
         const customList = await fetch('/custom-list.json').then(r => r.json());
-        const referenceList = await fetch('/EVERY_SINGLE_ROLE_with_image_placeholders.json').then(r => r.json());
+        const referenceList = await fetch('/EVERY_SINGLE_ROLE_with_chinese_abilities.json').then(r => r.json());
         const referenceMap = Object.fromEntries(referenceList.map(r => [r.id.replace(/_/g, ''), r]));
 
         const grids = {
