@@ -27,17 +27,18 @@
     .role img { width: 50px; height: 50px; display: block; }
     .tooltip {
       visibility: hidden; background: rgba(0, 0, 0, 0.85); color: #fff; border-radius: 5px;
-      padding: 5px 10px; position: absolute; white-space: nowrap; max-width: 250px;
+      padding: 5px 10px; position: fixed; white-space: nowrap; max-width: 250px;
+      z-index: 9999;
     }
     .role:hover .tooltip { visibility: visible; }
-    .role:hover .tooltip.left { left: 60px; right: auto; }
-    .role:hover .tooltip.right { right: 60px; left: auto; }
+    .role:hover .tooltip.left { left: calc(100% + 10px); right: auto; top: 50%; transform: translateY(-50%); }
+    .role:hover .tooltip.right { right: calc(100% + 10px); left: auto; top: 50%; transform: translateY(-50%); }
     .category-title { margin-top: 10px; border-bottom: 1px solid #fff; padding-bottom: 5px; }
   </style>
 </head>
 
 <body>
-  <button id="toggleButton">顯示角色偏移版</button>
+  <button id="toggleButton">顯示角色</button>
   <div id="leftPanel" class="panel"></div>
   <div id="rightPanel" class="panel right"></div>
 
