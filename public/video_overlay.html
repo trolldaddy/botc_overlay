@@ -27,10 +27,11 @@
     .role img { width: 50px; height: 50px; display: block; }
     .tooltip {
       visibility: hidden; background: rgba(0, 0, 0, 0.85); color: #fff; border-radius: 5px;
-      padding: 10px; position: absolute; bottom: 60px; left: 50%; transform: translateX(-50%);
-      white-space: normal; max-width: 250px; z-index: 1002;
+      padding: 10px; position: absolute; white-space: normal; max-width: 250px; z-index: 1002;
     }
     .role:hover .tooltip { visibility: visible; }
+    .role:hover .tooltip.left { right: 60px; left: auto; }
+    .role:hover .tooltip.right { left: 60px; right: auto; }
     .category-title { margin-top: 10px; border-bottom: 1px solid #fff; padding-bottom: 5px; }
   </style>
 </head>
@@ -72,11 +73,13 @@
           const imgUrl = ref.image || '';
           const ability = ref.ability || '';
 
+          const tooltipClass = ref.team === 'townsfolk' ? 'left' : 'right';
+
           const roleHtml = `
             <div class="role">
               <img src="${imgUrl}" alt="${displayName}">
               <div>${displayName}</div>
-              <div class="tooltip">${ability}</div>
+              <div class="tooltip ${tooltipClass}">${ability}</div>
             </div>
           `;
 
