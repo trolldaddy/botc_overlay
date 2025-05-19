@@ -35,9 +35,19 @@
   </style>
 </head>
 <body>
-  <button id="toggleButton">顯示角色同溫層板</button>
-  <div id="leftPanel" class="panel"></div>
-  <div id="rightPanel" class="panel right"></div>
+  <button id="toggleButton">顯示角色清德</button>
+  <div id="leftPanel" class="panel">
+    <div class="category-title">鎮民</div>
+    <div class="role-grid" id="townsfolkGrid"></div>
+  </div>
+  <div id="rightPanel" class="panel right">
+    <div class="category-title">外來者</div>
+    <div class="role-grid" id="outsiderGrid"></div>
+    <div class="category-title">爪牙</div>
+    <div class="role-grid" id="minionGrid"></div>
+    <div class="category-title">惡魔</div>
+    <div class="role-grid" id="demonGrid"></div>
+  </div>
   <div id="globalTooltip"></div>
 
   <script>
@@ -59,10 +69,12 @@
         const referenceList = await fetch('/EVERY_SINGLE_ROLE_with_image_placeholders.json').then(r => r.json());
         const referenceMap = Object.fromEntries(referenceList.map(r => [r.id, r]));
 
-        const townsfolkContent = [];
-        const outsiderContent = [];
-        const minionContent = [];
-        const demonContent = [];
+        const grids = {
+          townsfolk: document.getElementById('townsfolkGrid'),
+          outsider: document.getElementById('outsiderGrid'),
+          minion: document.getElementById('minionGrid'),
+          demon: document.getElementById('demonGrid'),
+        };
 
         customList.forEach(role => {
           const ref = referenceMap[role.id];
@@ -89,11 +101,9 @@
           container.addEventListener('mouseenter', (e) => {
             globalTooltip.textContent = ability;
             globalTooltip.style.display = 'block';
-
             const rect = container.getBoundingClientRect();
             const offsetX = tooltipDirection === 'right' ? rect.right + 10 : rect.left - globalTooltip.offsetWidth - 10;
             const offsetY = rect.top + window.scrollY;
-
             globalTooltip.style.left = `${offsetX}px`;
             globalTooltip.style.top = `${offsetY}px`;
           });
@@ -102,25 +112,10 @@
             globalTooltip.style.display = 'none';
           });
 
-          if (ref.team === 'townsfolk') townsfolkContent.push(container.outerHTML);
-          else if (ref.team === 'outsider') outsiderContent.push(container.outerHTML);
-          else if (ref.team === 'minion') minionContent.push(container.outerHTML);
-          else if (ref.team === 'demon') demonContent.push(container.outerHTML);
+          if (grids[ref.team]) {
+            grids[ref.team].appendChild(container);
+          }
         });
-
-        leftPanel.innerHTML = `
-          <div class="category-title">鎮民</div>
-          <div class="role-grid">${townsfolkContent.join('')}</div>
-        `;
-
-        rightPanel.innerHTML = `
-          <div class="category-title">外來者</div>
-          <div class="role-grid">${outsiderContent.join('')}</div>
-          <div class="category-title">爪牙</div>
-          <div class="role-grid">${minionContent.join('')}</div>
-          <div class="category-title">惡魔</div>
-          <div class="role-grid">${demonContent.join('')}</div>
-        `;
 
       } catch (err) {
         console.error('載入角色資料失敗:', err);
