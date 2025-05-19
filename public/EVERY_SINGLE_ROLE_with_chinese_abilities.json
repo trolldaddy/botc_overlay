@@ -526,7 +526,7 @@
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/6/66/Minstrel.png/240px-Minstrel.png"
   },
   {
-    "id": "tealady",
+    "id": "tea_lady",
     "name": "茶藝師",
     "edition": "bmr",
     "team": "townsfolk",
@@ -638,7 +638,7 @@
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/d/dd/Godfather.png/240px-Godfather.png"
   },
    {
-    "id": "devilsadvocate",
+    "id": "devil_sadvocate",
     "name": "魔鬼代言人",
     "edition": "bmr",
     "team": "minion",
@@ -834,7 +834,7 @@
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/2/29/Dreamer.png/240px-Dreamer.png"
   },
   {
-    "id": "snakecharmer",
+    "id": "snake_charmer",
     "name": "舞蛇人",
     "edition": "snv",
     "team": "townsfolk",
@@ -876,7 +876,7 @@
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/5/5b/Flowergirl.png/240px-Flowergirl.png"
   },
   {
-    "id": "towncrier",
+    "id": "town_crier",
     "name": "城鎮公告員",
     "edition": "snv",
     "team": "townsfolk",
@@ -1048,7 +1048,7 @@
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/f/f6/Klutz.png/240px-Klutz.png"
   },
   {
-    "id": "eviltwin",
+    "id": "evil_twin",
     "name": "鏡像雙子",
     "edition": "snv",
     "team": "minion",
@@ -1110,7 +1110,7 @@
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/d/de/Pithag.png/240px-Pithag.png"
   },
   {
-    "id": "fanggu",
+    "id": "fang_gu",
     "name": "方古",
     "edition": "snv",
     "team": "demon",
@@ -1145,7 +1145,7 @@
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/f/fc/Vigormortis.png/240px-Vigormortis.png"
   },
   {
-    "id": "nodashii",
+    "id": "no_dashii",
     "name": "諾達鯴",
     "edition": "snv",
     "team": "demon",
