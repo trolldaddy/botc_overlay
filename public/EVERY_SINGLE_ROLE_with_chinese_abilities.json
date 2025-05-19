@@ -844,7 +844,7 @@
     "otherNightReminder": "The Snake Charmer points to a player. If that player is the Demon: swap the Demon and Snake Charmer character and alignments. Wake each player to inform them of their new role and alignment. The new Snake Charmer is poisoned.",
     "reminders": ["Poisoned"],
     "setup": false,
-    "ability": "每個夜晚，選擇一名存活玩家：若該玩家是惡魔，則你與該玩家交換角色與陣營，並使新舞蛇人中毒。",
+    "ability": "每個夜晚，你要選擇一個存活的玩家：如果你選中了惡魔，你和他交換角色和陣營，然後他中毒。",
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/a/ab/Snakecharmer.png/300px-Snakecharmer.png"
   },
    {
@@ -858,7 +858,7 @@
     "otherNightReminder": "Show the hand signal for the number (0, 1, 2, etc.) of players whose ability malfunctioned due to other abilities.",
     "reminders": ["Abnormal"],
     "setup": false,
-    "ability": "每個夜晚，你會得知自天亮以來，有多少玩家的能力因其他能力而失效。",
+    "ability": "每個夜晚，你會得知有多少名玩家的能力因為其他角色的能力而未正常生效。 (從上個黎明到你被喚醒時）",
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/0/06/Mathematician.png/240px-Mathematician.png"
   },
   {
@@ -970,7 +970,7 @@
     "otherNightReminder": "If today was the Juggler’s first day: Show the hand signal for the number (0, 1, 2, etc.) of 'Correct' markers. Remove markers.",
     "reminders": ["Correct"],
     "setup": false,
-    "ability": "在你的第一天，公開猜測最多五名玩家的角色。當晚，你會得知你猜對了多少。",
+    "ability": "在你的首個白天，你可以公開猜測任意玩家的角色最多五次。在當晚，你會得知猜測正確的角色數量。",
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/b/be/Juggler.png/240px-Juggler.png"
   },
   {
