@@ -2,39 +2,35 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <title>BOTC 角色總覽</title>
-  <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
+  <title>BOTC Overlay 測試成功！</title>
   <style>
     body {
       margin: 0;
+      background: transparent;
       overflow: hidden;
-      font-family: Arial, sans-serif;
     }
     #toggleButton {
       position: fixed;
       bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
-      z-index: 1001;
       padding: 10px 20px;
-      background: rgba(0,0,0,0.7);
-      color: white;
-      border: none;
-      border-radius: 5px;
+      background: #fff;
+      border: 2px solid #000;
       cursor: pointer;
+      z-index: 1000;
     }
     .panel {
       position: fixed;
       top: 0;
-      width: 300px;
+      width: 30%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.8);
+      background: rgba(0,0,0,0.8);
       color: #fff;
-      padding: 20px;
       overflow-y: auto;
       transform: translateX(-100%);
-      transition: transform 0.3s ease;
-      z-index: 1000;
+      transition: transform 0.3s;
+      padding: 10px;
     }
     .panel.right {
       right: 0;
@@ -47,68 +43,50 @@
   </style>
 </head>
 <body>
-  <button id="toggleButton">角色總覽</button>
+  <button id="toggleButton">顯示角色列表</button>
   <div id="leftPanel" class="panel"></div>
   <div id="rightPanel" class="panel right"></div>
 
   <script>
-    let isVisible = false;
-    const button = document.getElementById('toggleButton');
+    const toggleButton = document.getElementById('toggleButton');
     const leftPanel = document.getElementById('leftPanel');
     const rightPanel = document.getElementById('rightPanel');
 
-    button.addEventListener('click', () => {
-      isVisible = !isVisible;
-      leftPanel.classList.toggle('show', isVisible);
-      rightPanel.classList.toggle('show', isVisible);
-    });
+    let customRoles = [];
+    let roleReference = {};
 
-    function loadRoles() {
-      console.log('開始載入 custom-list.json 和 role_reference_trouble_brewing.json');
-      Promise.all([
-        fetch('/custom-list.json').then(r => r.json()),
-        fetch('/role_reference_trouble_brewing.json').then(r => r.json())
-      ]).then(([selectedRoles, reference]) => {
-        console.log('載入的 custom-list.json:', selectedRoles);
-        console.log('載入的 role_reference_trouble_brewing.json:', reference);
+    function loadPanels() {
+      leftPanel.innerHTML = '<h2>善良角色</h2>';
+      rightPanel.innerHTML = '<h2>邪惡角色</h2>';
 
-        const goodRoles = [];
-        const evilRoles = [];
-
-        selectedRoles.forEach(role => {
-          console.log('檢查角色 ID:', role.id);
-          const data = reference[role.id];
-          if (data) {
-            console.log('找到角色資料:', data);
-            const formatted = `${data.name_zh} (${role.id})<br><small>${data.ability}</small>`;
-            if (data.team === '善良') {
-              goodRoles.push(formatted);
-            } else {
-              evilRoles.push(formatted);
-            }
-          } else {
-            console.warn('找不到角色對應資料:', role.id);
+      customRoles.forEach(role => {
+        const ref = roleReference[role.id];
+        if (ref) {
+          const content = `<div><strong>${ref.name_zh}</strong> - ${ref.ability}</div>`;
+          if (ref.team === '善良') {
+            leftPanel.innerHTML += content;
+          } else if (ref.team === '邪惡') {
+            rightPanel.innerHTML += content;
           }
-        });
-
-        leftPanel.innerHTML = '<h2>善良陣營</h2>' + (goodRoles.length ? goodRoles.join('<hr>') : '<p>無資料</p>');
-        rightPanel.innerHTML = '<h2>邪惡陣營</h2>' + (evilRoles.length ? evilRoles.join('<hr>') : '<p>無資料</p>');
-      }).catch(err => {
-        console.error('載入失敗', err);
-        leftPanel.innerHTML = '<p>無法載入角色資料。</p>';
-        rightPanel.innerHTML = '<p>無法載入角色資料。</p>';
+        }
       });
     }
 
-    if (window.Twitch && window.Twitch.ext) {
-      window.Twitch.ext.onAuthorized(function(auth) {
-        console.log('Twitch Extension 授權成功', auth);
-        loadRoles();
-      });
-    } else {
-      console.error('Twitch Extension Helper 未載入，使用後備機制');
-      loadRoles();
-    }
+    Promise.all([
+      fetch('/custom-list.json').then(res => res.json()),
+      fetch('/role_reference_trouble_brewing.json').then(res => res.json())
+    ]).then(([customList, reference]) => {
+      customRoles = customList;
+      roleReference = reference;
+      loadPanels();
+    }).catch(err => console.error('載入失敗', err));
+
+    let isShown = false;
+    toggleButton.addEventListener('click', () => {
+      isShown = !isShown;
+      leftPanel.classList.toggle('show', isShown);
+      rightPanel.classList.toggle('show', isShown);
+    });
   </script>
 </body>
 </html>
