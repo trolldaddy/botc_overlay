@@ -47,10 +47,10 @@
     });
 
     async function loadRoles() {
-      const customListRes = await fetch('/custom-list.json');
+      const customListRes = await fetch('custom-list.json');
       const customList = await customListRes.json();
 
-      const referenceRes = await fetch('/role_reference_trouble_brewing.json');
+      const referenceRes = await fetch('role_reference_trouble_brewing.json');
       const reference = await referenceRes.json();
 
       const roleMap = reference;
