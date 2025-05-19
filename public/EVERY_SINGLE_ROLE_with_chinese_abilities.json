@@ -396,7 +396,7 @@
     "otherNightReminder": "If the Grandmother’s grandchild was killed by the Demon tonight: The Grandmother dies.",
     "reminders": ["Grandchild"],
     "setup": false,
-    "ability": "你會得知一名善良玩家及其角色。如果惡魔殺死該玩家，你也會死亡。",
+    "ability": "在你的首個夜晚，你會得知一位善良玩家和他的角色。如果惡魔殺死了他，你也會死亡。",
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/6/66/Grandmother.png/240px-Grandmother.png"
   },
   {
@@ -410,7 +410,7 @@
     "otherNightReminder": "The previously drunk player is no longer drunk. The Sailor points to a living player. Either the Sailor, or the chosen player, is drunk.",
     "reminders": ["Drunk"],
     "setup": false,
-    "ability": "每個夜晚，選擇一名存活的玩家：你或該玩家會變得醉酒直到下個黃昏。你無法死亡。",
+    "ability": "每個夜晚，你要選擇一名存活的玩家：你或他其中一個會醉酒直到下個黃昏。你不會死亡。",
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/c/ce/Sailor.png/240px-Sailor.png"
   },
   {
@@ -424,7 +424,7 @@
     "otherNightReminder": "The Chambermaid points to two players. Show the number signal (0, 1, 2, …) for how many of those players wake tonight for their ability.",
     "reminders": [],
     "setup": false,
-    "ability": "每個夜晚，選擇兩名存活的玩家（不能選自己）：你會得知這兩名玩家中有多少今晚因為其能力而被喚醒。",
+    "ability": "每個夜晚，你要選擇除你以外的兩名存活的玩家：你會得知他們中有幾人在當晚因其自身能力而被喚醒。",
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/0/00/Chambermaid.png/240px-Chambermaid.png"
   },
    {
@@ -438,7 +438,7 @@
     "otherNightReminder": "The Exorcist points to a player, different from the previous night. If that player is the Demon: Wake the Demon. Show the Exorcist token. Point to the Exorcist. The Demon does not act tonight.",
     "reminders": ["Chosen"],
     "setup": false,
-    "ability": "每個夜晚*，選擇一名與前一夜不同的玩家：若該玩家是惡魔，他會得知你是誰，且今晚不會因其自身能力而被喚醒。",
+    "ability": "每個夜晚*，你要選擇一名玩家（與上個夜晚不同）：如果你選中了惡魔，他會得知你是驅魔人，但他當晚不會因其自身能力而被喚醒。",
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/a/ac/Exorcist.png/240px-Exorcist.png"
   },
   {
@@ -452,7 +452,7 @@
     "otherNightReminder": "The previously protected and drunk players lose those markers. The Innkeeper points to two players. Those players are protected. One is drunk.",
     "reminders": ["Protected", "Drunk"],
     "setup": false,
-    "ability": "每個夜晚*，選擇兩名玩家：他們今晚無法被殺死，但其中一人會變得醉酒直到下個黃昏。",
+    "ability": "每個夜晚*，你要選兩名玩家：他們當晚不會死亡，但其中一人會醉到下個黃昏。",
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/3/32/Innkeeper.png/240px-Innkeeper.png"
   },
   {
@@ -466,12 +466,12 @@
     "otherNightReminder": "The Gambler points to a player, and a character on their sheet. If incorrect, the Gambler dies.",
     "reminders": ["Dead"],
     "setup": false,
-    "ability": "每個夜晚*，選擇一名玩家並猜測該玩家的角色：若猜錯，你會死亡。",
+    "ability": "每個夜晚*，你要選擇一名玩家並猜測他的角色：如果你猜錯了，你會死亡。",
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/8/8a/Gambler.png/240px-Gambler.png"
   },
   {
     "id": "gossip",
-    "name": "八卦者",
+    "name": "造謠者",
     "edition": "bmr",
     "team": "townsfolk",
     "firstNight": 0,
@@ -480,7 +480,7 @@
     "otherNightReminder": "If the Gossip’s public statement was true: Choose a player not protected from dying tonight. That player dies.",
     "reminders": ["Dead"],
     "setup": false,
-    "ability": "每天，你可以公開發表一個聲明。若該聲明屬實，今晚會有一名玩家死亡。",
+    "ability": "每個白天，你可以公開發表一個聲明。如果聲明正確，在當晚會有一名玩家死亡。",
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/a/a4/Gossip.png/240px-Gossip.png"
   },
   {
@@ -494,7 +494,7 @@
     "otherNightReminder": "Reduce the remaining number of days the marked player is poisoned. If the Courtier has not yet used their ability: The Courtier either shows a 'no' head signal, or points to a character on the sheet. If the Courtier used their ability: If that character is in play, that player is drunk.",
     "reminders": ["Drunk 3", "Drunk 2", "Drunk 1", "No ability"],
     "setup": false,
-    "ability": "遊戲中僅限一次，在夜晚選擇一個角色：該角色醉酒三個夜晚與三個白天。",
+    "ability": "每局遊戲限一次，在夜晚時，你可以選擇一個角色：如果該角色在場，該角色之一從當晚開始醉酒三天三夜。",
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/d/d9/Courtier.png/240px-Courtier.png"
   },
    {
@@ -508,7 +508,7 @@
     "otherNightReminder": "If the Professor has not used their ability: The Professor either shakes their head no, or points to a player. If that player is a Townsfolk, they are now alive.",
     "reminders": ["Alive", "No ability"],
     "setup": false,
-    "ability": "遊戲中僅限一次，在夜晚*選擇一名死亡的玩家：若該玩家是鎮民，他們會復活。",
+    "ability": "每局遊戲限一次，在夜晚時*，你可以選擇一名死亡的玩家：如果他是鎮民，你會將他起死回生。",
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/b/b1/Professor.png/240px-Professor.png"
   },
   {
@@ -522,7 +522,7 @@
     "otherNightReminder": "",
     "reminders": ["Everyone drunk"],
     "setup": false,
-    "ability": "當一名爪牙死於處決時，所有其他玩家（旅者除外）會變得醉酒直到明天天亮。",
+    "ability": "當一名爪牙死於處決時，除了你和旅行者以外的所有其他玩家醉酒直到明天黃昏。",
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/6/66/Minstrel.png/240px-Minstrel.png"
   },
   {
@@ -536,7 +536,7 @@
     "otherNightReminder": "",
     "reminders": ["Can not die"],
     "setup": false,
-    "ability": "若你兩側的存活鄰居都是善良陣營，他們無法被殺死。",
+    "ability": "如果與你鄰近的兩名存活的玩家是善良的，他們不會死亡。",
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/b/bc/Tealady.png/240px-Tealady.png"
   },
   {
@@ -564,7 +564,7 @@
     "otherNightReminder": "",
     "reminders": ["No ability"],
     "setup": false,
-    "ability": "你第一次死亡時不會真正死亡。",
+    "ability": "當你首次將要死亡時，你不會死亡。",
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/7/70/Fool.png/240px-Fool.png"
   },
   {
@@ -578,7 +578,7 @@
     "otherNightReminder": "The Tinker might die.",
     "reminders": ["Dead"],
     "setup": false,
-    "ability": "你可能會在任何時候死亡。",
+    "ability": "你隨時可能死亡。",
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/e/ec/Tinker.png/240px-Tinker.png"
   },
   {
@@ -592,7 +592,7 @@
     "otherNightReminder": "If the Moonchild used their ability to target a player today: If that player is good, they die.",
     "reminders": ["Dead"],
     "setup": false,
-    "ability": "當你得知你已死亡時，公開選擇一名存活玩家：若該玩家是善良陣營，他今晚會死亡。",
+    "ability": "當你得知你死亡時，你要公開選擇一名存活的玩家。如果他是善良的，在當晚他會死亡。",
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/7/7d/Moonchild.png/240px-Moonchild.png"
   },
   {
@@ -606,7 +606,7 @@
     "otherNightReminder": "",
     "reminders": ["Drunk"],
     "setup": false,
-    "ability": "每個夜晚，第一個用能力選擇你的玩家會醉酒直到下個黃昏。你會改變為該玩家的陣營。",
+    "ability": "每個夜晚，首個使用其自身能力選擇了你的玩家會醉酒直到下個黃昏。你會轉變為他的陣營。",
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/c/cd/Goon.png/240px-Goon.png"
   },
   {
@@ -620,7 +620,7 @@
     "otherNightReminder": "Allow the Lunatic to do the actions of the Demon. Place their 'attack' markers. If the Lunatic selected players: Wake the Demon. Show the 'attack' marker, then point to each marked player. Remove any Lunatic 'attack' markers.",
     "reminders": ["Attack 1", "Attack 2", "Attack 3"],
     "setup": false,
-    "ability": "你以為自己是惡魔，但其實不是。真正的惡魔知道你是誰，以及你夜晚選擇了哪些玩家。",
+    "ability": "你以為你是個惡魔，但其實你不是。惡魔知道你是瘋子以及你在每個夜晚選擇了哪些玩家。",
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/8/89/Lunatic.png/240px-Lunatic.png"
   },
   {
@@ -634,7 +634,7 @@
     "otherNightReminder": "If an Outsider died today: The Godfather points to a player. That player dies.",
     "reminders": ["Died today", "Dead"],
     "setup": true,
-    "ability": "你會得知遊戲中有哪些外來者。如果今天有外來者死亡，今晚你可以選擇一名玩家使其死亡。[+1 或 -1 外來者]",
+    "ability": "在你的首個夜晚，你會得知有哪些外來者角色在場。如果有外來者在白天死亡，你會在當晚被喚醒並且你要選擇一名玩家：他死亡。 [-1或+1外來者]",
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/d/dd/Godfather.png/240px-Godfather.png"
   },
    {
@@ -648,7 +648,7 @@
     "otherNightReminder": "The Devil’s Advocate points to a living player, different from the previous night. That player survives execution tomorrow.",
     "reminders": ["Survives execution"],
     "setup": false,
-    "ability": "每個夜晚，選擇一名與前一晚不同的存活玩家：若該玩家明天被處決，他不會死亡。",
+    "ability": "每個夜晚，你要選擇一名存活的玩家（與上個夜晚不同）：如果明天白天他被處決，他不會死亡。",
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/5/5d/Devilsadvocate.png/240px-Devilsadvocate.png"
   },
   {
@@ -662,7 +662,7 @@
     "otherNightReminder": "If the Assassin has not yet used their ability: The Assassin either shows the 'no' head signal, or points to a player. That player dies.",
     "reminders": ["Dead", "No ability"],
     "setup": false,
-    "ability": "遊戲中僅限一次，在夜晚*選擇一名玩家：該玩家死亡，即使有其他原因讓他無法死亡。",
+    "ability": "每局遊戲限一次，在夜晚時*，你可以選擇一名玩家：他死亡，即使因為任何原因讓他不會死亡。",
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/6/69/Assassin.png/240px-Assassin.png"
   },
   {
@@ -676,7 +676,7 @@
     "otherNightReminder": "",
     "reminders": [],
     "setup": false,
-    "ability": "若惡魔因被處決而結束遊戲，再繼續進行一天。如果隔天有玩家被處決，該玩家的陣營輸掉遊戲。",
+    "ability": "如果惡魔因為死於處決而因此導致遊戲結束時，再額外進行一個夜晚和一個白天。在那個白天如果有玩家被處決，他的陣營就落敗。",
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/1/19/Mastermind.png/240px-Mastermind.png"
   },
   {
@@ -690,7 +690,7 @@
     "otherNightReminder": "If no-one died during the day: The Zombuul points to a player. That player dies.",
     "reminders": ["Died today", "Dead"],
     "setup": false,
-    "ability": "每個夜晚*，若白天沒有人死亡，選擇一名玩家：該玩家死亡。你第一次死亡時，實際上並未死亡，但你會被當作已死。",
+    "ability": "每個夜晚*，如果今天白天沒有人死亡，你會被喚醒並要選擇一名玩家：他死亡。當你第一次死亡後，你仍存活，但會被當作死亡。",
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/7/7b/Zombuul.png/240px-Zombuul.png"
   },
   {
@@ -704,7 +704,7 @@
     "otherNightReminder": "The Pukka points to a player. That player is poisoned. The previously poisoned player dies.",
     "reminders": ["Poisoned", "Dead"],
     "setup": false,
-    "ability": "每個夜晚，選擇一名玩家：該玩家中毒。前一名中毒的玩家會死亡並恢復健康。",
+    "ability": "每個夜晚，你要選擇一名玩家：他中毒。上個因你的能力而中毒的玩家會死亡並恢復健康。",
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/4/45/Pukka.png/240px-Pukka.png"
   },
     {
@@ -718,7 +718,7 @@
     "otherNightReminder": "One player that the Shabaloth chose the previous night might be resurrected. The Shabaloth points to two players. Those players die.",
     "reminders": ["Dead", "Alive"],
     "setup": false,
-    "ability": "每個夜晚*，選擇兩名玩家：他們死亡。你上個夜晚選擇過的一名死亡玩家可能會被吐出並復活。",
+    "ability": "每個夜晚*，你要選擇兩名玩家：他們死亡。你上個夜晚選擇過的一名死亡玩家可能會被吐出並復活。",
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/5/5c/Shabaloth.png/240px-Shabaloth.png"
   },
   {
@@ -732,7 +732,7 @@
     "otherNightReminder": "If the Po chose no-one the previous night: The Po points to three players. Otherwise: The Po either shows the 'no' head signal , or points to a player. Chosen players die",
     "reminders": ["Dead", "3 attacks"],
     "setup": false,
-    "ability": "每個夜晚*，你可以選擇一名玩家：該玩家死亡。如果你上次選擇了「不選擇任何人」，這次可以選擇三名玩家讓他們死亡。",
+    "ability": "每個夜晚*，你可以選擇一名玩家：他死亡。如果你上次選擇時沒有選擇任何玩家，當晚你要選擇三名玩家：他們死亡。",
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/b/bf/Po.png/240px-Po.png"
   },
   {
