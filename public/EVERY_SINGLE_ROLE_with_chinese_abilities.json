@@ -2094,8 +2094,7 @@
     "otherNightReminder": "",
     "reminders": [],
     "setup": false,
-    "ability": "如果有大於等於五名玩家存活，你必須在所有提名中投票。
-"
+    "ability": "如果有大於等於五名玩家存活，你必須在所有提名中投票。"
   },
   {
     "id": "boffin",
