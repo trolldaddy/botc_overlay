@@ -53,20 +53,16 @@
     async function loadRoles() {
       try {
         const customList = await fetch('custom-list.json').then(r => r.json());
-        const referenceList = await fetch('role_reference_trouble_brewing.json').then(r => r.json());
+        const referenceList = await fetch('EVERY_SINGLE_ROLE_with_image_placeholders.json').then(r => r.json());
 
         const referenceMap = Object.fromEntries(referenceList.map(r => [r.id, r]));
 
-        const categories = {
-          '鎮民': [],
-          '外來者': [],
-          '爪牙': [],
-          '惡魔': []
-        };
+        const categories = { townsfolk: [], outsider: [], minion: [], demon: [] };
 
         customList.forEach(role => {
           const ref = referenceMap[role.id];
           if (!ref) return;
+
           const displayName = ref.name_zh || ref.name || role.id;
           const imgUrl = ref.image || '';
           const ability = ref.ability || '';
@@ -79,16 +75,16 @@
             </div>
           `;
 
-          if (categories[ref.type]) {
-            categories[ref.type].push(roleHtml);
+          if (categories[ref.team]) {
+            categories[ref.team].push(roleHtml);
           }
         });
 
-        leftPanel.innerHTML = `<div class="category-title">鎮民</div>${categories['鎮民'].join('')}`;
+        leftPanel.innerHTML = `<div class="category-title">鎮民</div>${categories.townsfolk.join('')}`;
         rightPanel.innerHTML = `
-          <div class="category-title">外來者</div>${categories['外來者'].join('')}
-          <div class="category-title">爪牙</div>${categories['爪牙'].join('')}
-          <div class="category-title">惡魔</div>${categories['惡魔'].join('')}
+          <div class="category-title">外來者</div>${categories.outsider.join('')}
+          <div class="category-title">爪牙</div>${categories.minion.join('')}
+          <div class="category-title">惡魔</div>${categories.demon.join('')}
         `;
 
       } catch (err) {
