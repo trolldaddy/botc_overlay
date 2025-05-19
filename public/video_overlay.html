@@ -23,19 +23,20 @@
     .role img { width: 50px; height: 50px; display: block; }
     .category-title { margin-top: 10px; border-bottom: 1px solid #fff; padding-bottom: 5px; }
     #globalTooltip {
-      display: none;
-      position: fixed;
-      background: rgba(0, 0, 0, 0.85);
-      color: #fff;
-      border-radius: 5px;
-      padding: 5px 10px;
-      white-space: nowrap;
-      z-index: 10000;
-    }
+  display: none;
+  position: fixed;
+  background: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  border-radius: 5px;
+  padding: 5px 10px;
+  white-space: normal;
+  max-width: 90vw;
+  z-index: 10000;
+}
   </style>
 </head>
 <body>
-  <button id="toggleButton">顯示角色清德</button>
+  <button id="toggleButton">顯示角色收錢</button>
   <div id="leftPanel" class="panel">
     <div class="category-title">鎮民</div>
     <div class="role-grid" id="townsfolkGrid"></div>
