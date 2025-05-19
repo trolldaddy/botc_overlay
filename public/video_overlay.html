@@ -21,32 +21,30 @@
     .role-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
     .role { display: flex; flex-direction: column; align-items: center; position: relative; }
     .role img { width: 50px; height: 50px; display: block; }
-    .tooltip {
+    .category-title { margin-top: 10px; border-bottom: 1px solid #fff; padding-bottom: 5px; }
+    #globalTooltip {
       display: none;
-      position: absolute;
+      position: fixed;
       background: rgba(0, 0, 0, 0.85);
       color: #fff;
       border-radius: 5px;
       padding: 5px 10px;
       white-space: nowrap;
-      max-width: 250px;
-      z-index: 9999;
+      z-index: 10000;
     }
-    .role:hover .tooltip { display: block; }
-    .role:hover .tooltip.left { left: 60px; top: 50%; transform: translateY(-50%); }
-    .role:hover .tooltip.right { right: 60px; top: 50%; transform: translateY(-50%); }
-    .category-title { margin-top: 10px; border-bottom: 1px solid #fff; padding-bottom: 5px; }
   </style>
 </head>
 <body>
-  <button id="toggleButton">顯示角色跑路版</button>
+  <button id="toggleButton">顯示角色同溫層板</button>
   <div id="leftPanel" class="panel"></div>
   <div id="rightPanel" class="panel right"></div>
+  <div id="globalTooltip"></div>
 
   <script>
     const toggleButton = document.getElementById('toggleButton');
     const leftPanel = document.getElementById('leftPanel');
     const rightPanel = document.getElementById('rightPanel');
+    const globalTooltip = document.getElementById('globalTooltip');
 
     let isVisible = false;
     toggleButton.addEventListener('click', () => {
@@ -73,20 +71,41 @@
           const displayName = ref.name_zh || ref.name || role.id;
           const imgUrl = ref.image || '';
           const ability = ref.ability || '';
-          const tooltipClass = ref.team === 'townsfolk' ? 'left' : 'right';
+          const tooltipDirection = ref.team === 'townsfolk' ? 'right' : 'left';
 
-          const roleHtml = `
-            <div class="role">
-              <img src="${imgUrl}" alt="${displayName}">
-              <div>${displayName}</div>
-              <div class="tooltip ${tooltipClass}">${ability}</div>
-            </div>
-          `;
+          const container = document.createElement('div');
+          container.className = 'role';
 
-          if (ref.team === 'townsfolk') townsfolkContent.push(roleHtml);
-          else if (ref.team === 'outsider') outsiderContent.push(roleHtml);
-          else if (ref.team === 'minion') minionContent.push(roleHtml);
-          else if (ref.team === 'demon') demonContent.push(roleHtml);
+          const img = document.createElement('img');
+          img.src = imgUrl;
+          img.alt = displayName;
+
+          const label = document.createElement('div');
+          label.textContent = displayName;
+
+          container.appendChild(img);
+          container.appendChild(label);
+
+          container.addEventListener('mouseenter', (e) => {
+            globalTooltip.textContent = ability;
+            globalTooltip.style.display = 'block';
+
+            const rect = container.getBoundingClientRect();
+            const offsetX = tooltipDirection === 'right' ? rect.right + 10 : rect.left - globalTooltip.offsetWidth - 10;
+            const offsetY = rect.top + window.scrollY;
+
+            globalTooltip.style.left = `${offsetX}px`;
+            globalTooltip.style.top = `${offsetY}px`;
+          });
+
+          container.addEventListener('mouseleave', () => {
+            globalTooltip.style.display = 'none';
+          });
+
+          if (ref.team === 'townsfolk') townsfolkContent.push(container.outerHTML);
+          else if (ref.team === 'outsider') outsiderContent.push(container.outerHTML);
+          else if (ref.team === 'minion') minionContent.push(container.outerHTML);
+          else if (ref.team === 'demon') demonContent.push(container.outerHTML);
         });
 
         leftPanel.innerHTML = `
