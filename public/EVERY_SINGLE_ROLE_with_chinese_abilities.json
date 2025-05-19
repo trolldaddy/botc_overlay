@@ -77,7 +77,7 @@
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/4/4e/Empath.png/240px-Empath.png"
   },
  {
-    "id": "fortuneteller",
+    "id": "fortune_teller",
     "name": "占卜師",
     "edition": "tb",
     "team": "townsfolk",
@@ -274,7 +274,7 @@
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/3/36/Spy.png/240px-Spy.png"
   },
   {
-    "id": "scarletwoman",
+    "id": "scarlet_woman",
     "name": "紅脣女郎",
     "edition": "tb",
     "team": "minion",
