@@ -68,7 +68,7 @@
       try {
         const customList = await fetch('/custom-list.json').then(r => r.json());
         const referenceList = await fetch('/EVERY_SINGLE_ROLE_with_chinese_abilities.json').then(r => r.json());
-        const referenceMap = Object.fromEntries(referenceList.map(r => [r.id.replace(/_/g, ''), r]));
+        const referenceMap = Object.fromEntries(referenceList.map(r => [r.id.replace(/_/g, '_'), r]));
 
         const grids = {
           townsfolk: document.getElementById('townsfolkGrid'),
