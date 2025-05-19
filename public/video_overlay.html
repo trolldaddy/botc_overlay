@@ -19,7 +19,6 @@
     }
     .panel.right { right: 0; left: auto; transform: translateX(100%); }
     .panel.show { transform: translateX(0); }
-    .category-title { font-size: 1.2em; margin-top: 10px; border-bottom: 1px solid #fff; padding-bottom: 5px; }
     .role {
       display: inline-block; width: 50px; text-align: center; margin: 5px; position: relative;
     }
@@ -57,7 +56,8 @@
 
         const referenceMap = Object.fromEntries(referenceList.map(r => [r.id, r]));
 
-        const categories = { townsfolk: [], outsider: [], minion: [], demon: [] };
+        const leftContent = [];
+        const rightContent = [];
 
         customList.forEach(role => {
           const ref = referenceMap[role.id];
@@ -76,22 +76,14 @@
           `;
 
           if (ref.team === 'townsfolk') {
-            categories.townsfolk.push(roleHtml);
-          } else if (ref.team === 'outsider') {
-            categories.outsider.push(roleHtml);
-          } else if (ref.team === 'minion') {
-            categories.minion.push(roleHtml);
-          } else if (ref.team === 'demon') {
-            categories.demon.push(roleHtml);
+            leftContent.push(roleHtml);
+          } else {
+            rightContent.push(roleHtml);
           }
         });
 
-        leftPanel.innerHTML = `<div class="category-title">鎮民</div>${categories.townsfolk.join('')}`;
-        rightPanel.innerHTML = `
-          <div class="category-title">外來者</div>${categories.outsider.join('')}
-          <div class="category-title">爪牙</div>${categories.minion.join('')}
-          <div class="category-title">惡魔</div>${categories.demon.join('')}
-        `;
+        leftPanel.innerHTML = leftContent.join('');
+        rightPanel.innerHTML = rightContent.join('');
 
       } catch (err) {
         console.error('載入角色資料失敗:', err);
