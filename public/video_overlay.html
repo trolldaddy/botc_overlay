@@ -22,25 +22,30 @@
     .role { display: flex; flex-direction: column; align-items: center; position: relative; }
     .role img { width: 50px; height: 50px; display: block; }
     .tooltip {
-      visibility: hidden; background: rgba(0, 0, 0, 0.85); color: #fff; border-radius: 5px;
-      padding: 5px 10px; position: fixed; white-space: nowrap; max-width: 250px;
+      display: none;
+      position: fixed;
+      background: rgba(0, 0, 0, 0.85);
+      color: #fff;
+      border-radius: 5px;
+      padding: 5px 10px;
+      white-space: nowrap;
+      max-width: 250px;
       z-index: 9999;
     }
-    .role:hover .tooltip { visibility: visible; }
-    .role:hover .tooltip.left { left: calc(100% + 10px); top: 50%; transform: translateY(-50%); }
-    .role:hover .tooltip.right { right: calc(100% + 10px); top: 50%; transform: translateY(-50%); }
     .category-title { margin-top: 10px; border-bottom: 1px solid #fff; padding-bottom: 5px; }
   </style>
 </head>
 <body>
-  <button id="toggleButton">顯示角色決定版</button>
+  <button id="toggleButton">顯示角色滑鼠版</button>
   <div id="leftPanel" class="panel"></div>
   <div id="rightPanel" class="panel right"></div>
+  <div id="globalTooltip" class="tooltip"></div>
 
   <script>
     const toggleButton = document.getElementById('toggleButton');
     const leftPanel = document.getElementById('leftPanel');
     const rightPanel = document.getElementById('rightPanel');
+    const globalTooltip = document.getElementById('globalTooltip');
 
     let isVisible = false;
     toggleButton.addEventListener('click', () => {
@@ -67,20 +72,40 @@
           const displayName = ref.name_zh || ref.name || role.id;
           const imgUrl = ref.image || '';
           const ability = ref.ability || '';
-          const tooltipClass = ref.team === 'townsfolk' ? 'left' : 'right';
 
-          const roleHtml = `
-            <div class="role">
-              <img src="${imgUrl}" alt="${displayName}">
-              <div>${displayName}</div>
-              <div class="tooltip ${tooltipClass}">${ability}</div>
-            </div>
-          `;
+          const container = document.createElement('div');
+          container.classList.add('role');
 
-          if (ref.team === 'townsfolk') townsfolkContent.push(roleHtml);
-          else if (ref.team === 'outsider') outsiderContent.push(roleHtml);
-          else if (ref.team === 'minion') minionContent.push(roleHtml);
-          else if (ref.team === 'demon') demonContent.push(roleHtml);
+          const img = document.createElement('img');
+          img.src = imgUrl;
+          img.alt = displayName;
+
+          const label = document.createElement('div');
+          label.textContent = displayName;
+
+          container.appendChild(img);
+          container.appendChild(label);
+
+          container.addEventListener('mouseenter', (e) => {
+            globalTooltip.textContent = ability;
+            globalTooltip.style.display = 'block';
+          });
+
+          container.addEventListener('mousemove', (e) => {
+            const offset = 10;
+            const direction = ref.team === 'townsfolk' ? 1 : -1;
+            globalTooltip.style.left = `${e.pageX + offset * direction}px`;
+            globalTooltip.style.top = `${e.pageY + offset}px`;
+          });
+
+          container.addEventListener('mouseleave', () => {
+            globalTooltip.style.display = 'none';
+          });
+
+          if (ref.team === 'townsfolk') townsfolkContent.push(container.outerHTML);
+          else if (ref.team === 'outsider') outsiderContent.push(container.outerHTML);
+          else if (ref.team === 'minion') minionContent.push(container.outerHTML);
+          else if (ref.team === 'demon') demonContent.push(container.outerHTML);
         });
 
         leftPanel.innerHTML = `
