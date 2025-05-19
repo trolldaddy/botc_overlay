@@ -78,8 +78,8 @@
    async function loadRoles(scriptFileName) {
   try {
     // 讀取選取的劇本
-    const customList = await fetch(`/Allscript/${scriptFileName}`).then(r => r.json());
-    const referenceList = await fetch('/EVERY_SINGLE_ROLE_with_chinese_abilities.json').then(r => r.json());
+    const customList = await fetch(`https://botc-twitch-873087277461.asia-east1.run.app/Allscript/${scriptFileName}`).then(r => r.json());
+    const referenceList = await fetch('https://botc-twitch-873087277461.asia-east1.run.app/EVERY_SINGLE_ROLE_with_chinese_abilities.json').then(r => r.json());
     const referenceMap = Object.fromEntries(referenceList.map(r => [r.id, r]));
 
     // 清除舊有角色
@@ -148,7 +148,7 @@
   document.addEventListener('DOMContentLoaded', async () => {
     const scriptSelector = document.getElementById('scriptSelector');
     try {
-      const response = await fetch('/Allscript/scripts.json'); // 假設有一個索引列表
+      const response = await fetch('https://botc-twitch-873087277461.asia-east1.run.app/Allscript/scripts.json'); // 假設有一個索引列表
       const scripts = await response.json();
       scripts.forEach(script => {
         const option = document.createElement('option');
