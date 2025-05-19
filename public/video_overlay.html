@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <title>BOTC 角色總覽</title>
+
   <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
   <style>
-    body { margin: 0; background: transparent; font-family: Arial, sans-serif; }
+    body { margin: 0; background: transparent; font-family: "Microsoft JhengHei", "微軟正黑體", sans-serif; }
     
     #toggleButton {
       position: fixed; bottom: 7rem; left: 50%; transform: translateX(-50%);
@@ -34,6 +35,12 @@
       max-width: 90vw;
       z-index: 10000;
     }
+      /* 只套用在 鎮民 / 外來者 / 爪牙 / 惡魔 四個分類標題 */
+  .category-title {
+    font-family: "Microsoft JhengHei", "微軟正黑體", sans-serif;
+    font-size: 20px;
+    font-weight: bold;
+  }
   </style>
 </head>
 <body>
