@@ -1,149 +1,86 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
-
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Blood on the Clocktower Overlay 測試</title>
+  <title>BOTC Overlay 測試成功！</title>
+  <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
   <style>
-    body {
-      margin: 0;
-      background: rgba(0, 0, 0, 0.5);
-      font-family: Arial, sans-serif;
-    }
-
+    body { margin: 0; background: rgba(0, 0, 0, 0.8); color: white; font-family: Arial, sans-serif; }
     #toggleButton {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
+      position: fixed; bottom: 20px; left: 50%;
       transform: translateX(-50%);
-      z-index: 1001;
-      padding: 10px 20px;
-      background: #fff;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
+      padding: 10px 20px; background: #111; color: white;
+      border: none; border-radius: 5px; cursor: pointer;
     }
-
     .panel {
-      position: fixed;
-      top: 0;
-      width: 300px;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.85);
-      overflow-y: auto;
-      transform: translateX(-100%);
+      position: fixed; top: 0; bottom: 0; width: 30%;
+      background: rgba(0, 0, 0, 0.9); overflow-y: auto; padding: 10px;
       transition: transform 0.3s ease;
-      padding: 20px;
-      color: white;
-      z-index: 1000;
     }
-
-    .panel.right {
-      right: 0;
-      left: auto;
-      transform: translateX(100%);
-    }
-
-    .panel.show {
-      transform: translateX(0);
-    }
-
-    .role-icon {
-      display: inline-block;
-      width: 50px;
-      height: 50px;
-      margin: 5px;
-      position: relative;
-    }
-
-    .role-icon img {
-      width: 100%;
-      height: 100%;
-    }
-
+    #leftPanel { left: 0; transform: translateX(-100%); }
+    #rightPanel { right: 0; transform: translateX(100%); }
+    .panel.show { transform: translateX(0); }
+    .category-title { font-size: 1.5em; margin: 10px 0; }
+    .role-item { display: inline-block; margin: 5px; text-align: center; position: relative; }
+    .role-item img { width: 50px; height: 50px; display: block; margin: auto; }
     .tooltip {
-      visibility: hidden;
-      background: rgba(0, 0, 0, 0.75);
-      color: #fff;
-      text-align: center;
-      border-radius: 6px;
-      padding: 5px;
-      position: absolute;
-      bottom: 60px;
-      left: 50%;
-      transform: translateX(-50%);
-      white-space: nowrap;
-      z-index: 1002;
+      visibility: hidden; background: #333; color: #fff; text-align: left;
+      border-radius: 5px; padding: 5px; position: absolute; bottom: 60px;
+      left: 50%; transform: translateX(-50%); z-index: 1; white-space: nowrap;
     }
-
-    .role-icon:hover .tooltip {
-      visibility: visible;
-    }
+    .role-item:hover .tooltip { visibility: visible; }
   </style>
 </head>
-
 <body>
-  <button id="toggleButton">顯示角色</button>
+  <button id="toggleButton">顯示角色資訊</button>
   <div id="leftPanel" class="panel"></div>
-  <div id="rightPanel" class="panel right"></div>
+  <div id="rightPanel" class="panel"></div>
 
   <script>
     const toggleButton = document.getElementById('toggleButton');
     const leftPanel = document.getElementById('leftPanel');
     const rightPanel = document.getElementById('rightPanel');
+    let panelsVisible = false;
 
     toggleButton.addEventListener('click', () => {
-      leftPanel.classList.toggle('show');
-      rightPanel.classList.toggle('show');
+      panelsVisible = !panelsVisible;
+      leftPanel.classList.toggle('show', panelsVisible);
+      rightPanel.classList.toggle('show', panelsVisible);
     });
 
-    async function loadRoles() {
-      const customListRes = await fetch('/custom-list.json');
-      const customRoles = await customListRes.json();
+    async function loadAndRender() {
+      const customList = await fetch('/custom-list.json').then(r => r.json());
+      const roleRef = await fetch('/role_reference_trouble_brewing.json').then(r => r.json());
 
-      const referenceRes = await fetch('/role_reference_trouble_brewing.json');
-      const referenceRoles = await referenceRes.json();
+      const roleMap = {};
+      for (const id in roleRef) roleMap[id] = roleRef[id];
 
-      const refMap = Object.fromEntries(
-        Object.entries(referenceRoles).map(([key, value]) => [key.toLowerCase(), value])
-      );
-
-      const leftContent = [];
-      const rightContent = { outsider: [], minion: [], demon: [] };
-
-      customRoles.forEach(role => {
-        const ref = refMap[role.id.toLowerCase()];
-        if (!ref) return;
-
-        const icon = ref.image || '';
-        const tooltip = `${ref.name_zh} - ${ref.ability}`;
-
-        const iconHtml = `<div class="role-icon">
-          <img src="${icon}" alt="${ref.name_zh}">
-          <div class="tooltip">${tooltip}</div>
-        </div>`;
-
-        if (ref.type === '鎮民') {
-          leftContent.push(iconHtml);
-        } else if (ref.type === '外來者') {
-          rightContent.outsider.push(iconHtml);
-        } else if (ref.type === '爪牙') {
-          rightContent.minion.push(iconHtml);
-        } else if (ref.type === '惡魔') {
-          rightContent.demon.push(iconHtml);
-        }
+      const teams = { town: [], outsider: [], minion: [], demon: [] };
+      customList.forEach(role => {
+        const data = roleMap[role.id] || {};
+        const team = data.team || role.type || 'unknown';
+        teams[team]?.push({ ...role, ...data });
       });
 
-      leftPanel.innerHTML = `<h2>鎮民</h2>${leftContent.join('')}`;
+      leftPanel.innerHTML = `<div class="category-title">鎮民</div>${renderRoles(teams.town)}`;
       rightPanel.innerHTML = `
-        <h2>外來者</h2>${rightContent.outsider.join('')}
-        <h2>爪牙</h2>${rightContent.minion.join('')}
-        <h2>惡魔</h2>${rightContent.demon.join('')}`;
+        <div class="category-title">外來者</div>${renderRoles(teams.outsider)}
+        <div class="category-title">爪牙</div>${renderRoles(teams.minion)}
+        <div class="category-title">惡魔</div>${renderRoles(teams.demon)}
+      `;
     }
 
-    loadRoles();
+    function renderRoles(roles) {
+      return roles.map(role => `
+        <div class="role-item">
+          <img src="${role.image || ''}" alt="${role.name_zh || role.name}">
+          <div>${role.name_zh || role.name}</div>
+          <div class="tooltip">${role.ability || '無能力說明'}</div>
+        </div>
+      `).join('');
+    }
+
+    loadAndRender();
   </script>
 </body>
-
 </html>
