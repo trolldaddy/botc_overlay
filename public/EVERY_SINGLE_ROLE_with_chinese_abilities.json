@@ -1,5 +1,12 @@
 [
    {
+    "id": "_meta",
+    "author": "Gonsly :3",
+    "name": "Every single Role",
+    "logo": "https://cdn.discordapp.com/attachments/1319893599894245376/1353871831240544308/image.png?ex=682a6be6&is=68291a66&hm=faa38130bf133d42543147a2655cd05d75b9adaabb21bb38cd29133e9e548596&",
+    "image": "Every single Role"
+  },
+   {
     "id": "washerwoman",
     "name": "洗衣婦",
     "edition": "tb",
@@ -419,7 +426,7 @@
     "setup": false,
     "ability": "每個夜晚，選擇兩名存活的玩家（不能選自己）：你會得知這兩名玩家中有多少今晚因為其能力而被喚醒。",
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/0/00/Chambermaid.png/240px-Chambermaid.png"
-  }
+  },
    {
     "id": "exorcist",
     "name": "驅魔人",
