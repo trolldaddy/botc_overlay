@@ -64,22 +64,30 @@
     });
 
     function loadRoles() {
+      console.log('開始載入 custom-list.json 和 role_reference_trouble_brewing.json');
       Promise.all([
         fetch('/custom-list.json').then(r => r.json()),
         fetch('/role_reference_trouble_brewing.json').then(r => r.json())
       ]).then(([selectedRoles, reference]) => {
+        console.log('載入的 custom-list.json:', selectedRoles);
+        console.log('載入的 role_reference_trouble_brewing.json:', reference);
+
         const goodRoles = [];
         const evilRoles = [];
 
         selectedRoles.forEach(role => {
+          console.log('檢查角色 ID:', role.id);
           const data = reference[role.id];
           if (data) {
+            console.log('找到角色資料:', data);
             const formatted = `${data.name_zh} (${role.id})<br><small>${data.ability}</small>`;
             if (data.team === '善良') {
               goodRoles.push(formatted);
             } else {
               evilRoles.push(formatted);
             }
+          } else {
+            console.warn('找不到角色對應資料:', role.id);
           }
         });
 
@@ -92,14 +100,13 @@
       });
     }
 
-    // 確保 Extension Helper 正常載入
     if (window.Twitch && window.Twitch.ext) {
       window.Twitch.ext.onAuthorized(function(auth) {
         console.log('Twitch Extension 授權成功', auth);
         loadRoles();
       });
     } else {
-      console.error('Twitch Extension Helper 未載入');
+      console.error('Twitch Extension Helper 未載入，使用後備機制');
       loadRoles();
     }
   </script>
