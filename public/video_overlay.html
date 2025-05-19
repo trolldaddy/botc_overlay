@@ -36,7 +36,7 @@
   </style>
 </head>
 <body>
-  <button id="toggleButton">顯示角色彈性</button>
+  <button id="toggleButton">顯示角色</button>
   <div id="leftPanel" class="panel">
     <div class="category-title">鎮民</div>
     <div class="role-grid" id="townsfolkGrid"></div>
@@ -103,7 +103,7 @@
             globalTooltip.textContent = ability;
             globalTooltip.style.display = 'block';
             const rect = container.getBoundingClientRect();
-            const offsetX = tooltipDirection === 'right' ? rect.right + 10 : rect.left - globalTooltip.offsetWidth - 10;
+            let offsetX = tooltipDirection === 'right' ? rect.right + 10 : rect.left - globalTooltip.offsetWidth - 10;
             const offsetY = rect.top + window.scrollY;
             // 計算螢幕寬度與 Tooltip 寬度，確保不超出螢幕邊界
 let tooltipWidth = globalTooltip.offsetWidth;
