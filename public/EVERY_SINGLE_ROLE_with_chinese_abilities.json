@@ -2259,7 +2259,7 @@
     "ability": "每個夜晚*，你要選擇一個角色：他死亡。如果該角色不在場，則由說書人來決定誰會被你殺死。"
   },
   {
-    "id": "Yaggababble",
+    "id": "yaggababble",
     "image": "https://wiki.bloodontheclocktower.com/images/0/08/Icon_yaggababble.png?raw=true",
     "firstNight": 5,
     "firstNightReminder": "Show the Yaggababble their phrase",
