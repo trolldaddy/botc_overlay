@@ -1,49 +1,90 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
+
 <head>
   <meta charset="UTF-8">
-  <title>BOTC Overlay 測試成功！</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blood on the Clocktower Overlay 測試</title>
   <style>
     body {
       margin: 0;
-      background: transparent;
-      overflow: hidden;
+      background: rgba(0, 0, 0, 0.5);
+      font-family: Arial, sans-serif;
     }
+
     #toggleButton {
       position: fixed;
       bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
+      z-index: 1001;
       padding: 10px 20px;
       background: #fff;
-      border: 2px solid #000;
+      border: none;
+      border-radius: 5px;
       cursor: pointer;
-      z-index: 1000;
     }
+
     .panel {
       position: fixed;
       top: 0;
-      width: 30%;
+      width: 300px;
       height: 100%;
-      background: rgba(0,0,0,0.8);
-      color: #fff;
+      background: rgba(0, 0, 0, 0.85);
       overflow-y: auto;
       transform: translateX(-100%);
-      transition: transform 0.3s;
-      padding: 10px;
+      transition: transform 0.3s ease;
+      padding: 20px;
+      color: white;
+      z-index: 1000;
     }
+
     .panel.right {
       right: 0;
       left: auto;
       transform: translateX(100%);
     }
+
     .panel.show {
       transform: translateX(0);
     }
+
+    .role-icon {
+      display: inline-block;
+      width: 50px;
+      height: 50px;
+      margin: 5px;
+      position: relative;
+    }
+
+    .role-icon img {
+      width: 100%;
+      height: 100%;
+    }
+
+    .tooltip {
+      visibility: hidden;
+      background: rgba(0, 0, 0, 0.75);
+      color: #fff;
+      text-align: center;
+      border-radius: 6px;
+      padding: 5px;
+      position: absolute;
+      bottom: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      z-index: 1002;
+    }
+
+    .role-icon:hover .tooltip {
+      visibility: visible;
+    }
   </style>
 </head>
+
 <body>
-  <button id="toggleButton">顯示角色列表</button>
+  <button id="toggleButton">顯示角色</button>
   <div id="leftPanel" class="panel"></div>
   <div id="rightPanel" class="panel right"></div>
 
@@ -52,41 +93,57 @@
     const leftPanel = document.getElementById('leftPanel');
     const rightPanel = document.getElementById('rightPanel');
 
-    let customRoles = [];
-    let roleReference = {};
+    toggleButton.addEventListener('click', () => {
+      leftPanel.classList.toggle('show');
+      rightPanel.classList.toggle('show');
+    });
 
-    function loadPanels() {
-      leftPanel.innerHTML = '<h2>善良角色</h2>';
-      rightPanel.innerHTML = '<h2>邪惡角色</h2>';
+    async function loadRoles() {
+      const customListRes = await fetch('/custom-list.json');
+      const customRoles = await customListRes.json();
+
+      const referenceRes = await fetch('/role_reference_trouble_brewing.json');
+      const referenceRoles = await referenceRes.json();
+
+      const refMap = Object.fromEntries(
+        Object.entries(referenceRoles).map(([key, value]) => [key.toLowerCase(), value])
+      );
+
+      const leftContent = [];
+      const rightContent = { outsider: [], minion: [], demon: [] };
 
       customRoles.forEach(role => {
-        const ref = roleReference[role.id];
-        if (ref) {
-          const content = `<div><strong>${ref.name_zh}</strong> - ${ref.ability}</div>`;
-          if (ref.team === '善良') {
-            leftPanel.innerHTML += content;
-          } else if (ref.team === '邪惡') {
-            rightPanel.innerHTML += content;
-          }
+        const ref = refMap[role.id.toLowerCase()];
+        if (!ref) return;
+
+        const icon = ref.image || '';
+        const tooltip = `${ref.name_zh} - ${ref.ability}`;
+
+        const iconHtml = `<div class="role-icon">
+          <img src="${icon}" alt="${ref.name_zh}">
+          <div class="tooltip">${tooltip}</div>
+        </div>`;
+
+        if (ref.type === '鎮民') {
+          leftContent.push(iconHtml);
+        } else if (ref.type === '外來者') {
+          rightContent.outsider.push(iconHtml);
+        } else if (ref.type === '爪牙') {
+          rightContent.minion.push(iconHtml);
+        } else if (ref.type === '惡魔') {
+          rightContent.demon.push(iconHtml);
         }
       });
+
+      leftPanel.innerHTML = `<h2>鎮民</h2>${leftContent.join('')}`;
+      rightPanel.innerHTML = `
+        <h2>外來者</h2>${rightContent.outsider.join('')}
+        <h2>爪牙</h2>${rightContent.minion.join('')}
+        <h2>惡魔</h2>${rightContent.demon.join('')}`;
     }
 
-    Promise.all([
-      fetch('/custom-list.json').then(res => res.json()),
-      fetch('/role_reference_trouble_brewing.json').then(res => res.json())
-    ]).then(([customList, reference]) => {
-      customRoles = customList;
-      roleReference = reference;
-      loadPanels();
-    }).catch(err => console.error('載入失敗', err));
-
-    let isShown = false;
-    toggleButton.addEventListener('click', () => {
-      isShown = !isShown;
-      leftPanel.classList.toggle('show', isShown);
-      rightPanel.classList.toggle('show', isShown);
-    });
+    loadRoles();
   </script>
 </body>
+
 </html>
