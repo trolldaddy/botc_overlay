@@ -1272,7 +1272,7 @@
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/5/59/Noble.png/240px-Noble.png"
   },
   {
-    "id": "bountyhunter",
+    "id": "bounty_hunter",
     "name": "賞金獵人",
     "edition": "",
     "team": "townsfolk",
@@ -1975,7 +1975,7 @@
     "ability": "如果惡魔殺死了你，所有玩家都會得知此事。從現在開始，你每天可以發起兩次提名，每次投票時可以投兩票。"
   },
   {
-    "id": "highpriestess",
+    "id": "high_priestess",
     "name": "女祭司",
     "edition": "",
     "team": "townsfolk",
@@ -2020,7 +2020,7 @@
     "ability": "在你的首個夜晚，你會得知最近的邪惡玩家位於你的順時針還是逆時針方向。如果兩側的邪惡玩家與你距離相等，你得知的訊息由說書人決定。"
   },
   {
-    "id": "villageidiot",
+    "id": "village_idiot",
     "name": "村夫",
     "edition": "",
     "image": "https://wiki.bloodontheclocktower.com/images/d/da/Icon_villageidiot.png",
