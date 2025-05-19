@@ -7,7 +7,7 @@
   <style>
     body { margin: 0; background: transparent; font-family: Arial, sans-serif; }
     #toggleButton {
-      position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%);
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
       background: #000; color: #fff; padding: 10px 20px; border: none; border-radius: 5px;
       z-index: 1001;
     }
@@ -36,7 +36,7 @@
   </style>
 </head>
 <body>
-  <button id="toggleButton">顯示角色收錢</button>
+  <button id="toggleButton">顯示角色彈性</button>
   <div id="leftPanel" class="panel">
     <div class="category-title">鎮民</div>
     <div class="role-grid" id="townsfolkGrid"></div>
@@ -105,7 +105,21 @@
             const rect = container.getBoundingClientRect();
             const offsetX = tooltipDirection === 'right' ? rect.right + 10 : rect.left - globalTooltip.offsetWidth - 10;
             const offsetY = rect.top + window.scrollY;
-            globalTooltip.style.left = `${offsetX}px`;
+            // 計算螢幕寬度與 Tooltip 寬度，確保不超出螢幕邊界
+let tooltipWidth = globalTooltip.offsetWidth;
+let screenWidth = window.innerWidth;
+let adjustedOffsetX = offsetX;
+
+// 若超出畫面右側，往左調整
+if (offsetX + tooltipWidth > screenWidth) {
+  adjustedOffsetX = screenWidth - tooltipWidth - 10;
+}
+// 若超出畫面左側，往右調整
+if (adjustedOffsetX < 0) {
+  adjustedOffsetX = 10;
+}
+
+globalTooltip.style.left = `${adjustedOffsetX}px`;
             globalTooltip.style.top = `${offsetY}px`;
           });
 
