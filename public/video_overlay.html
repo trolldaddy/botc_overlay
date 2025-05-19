@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
+
 <head>
   <meta charset="UTF-8">
   <title>BOTC 角色總覽</title>
@@ -26,16 +27,17 @@
     .role img { width: 50px; height: 50px; display: block; }
     .tooltip {
       visibility: hidden; background: rgba(0, 0, 0, 0.85); color: #fff; border-radius: 5px;
-      padding: 10px; position: absolute; white-space: nowrap; max-width: 250px; z-index: 1002;
+      padding: 5px 10px; position: absolute; white-space: nowrap; max-width: 250px;
     }
     .role:hover .tooltip { visibility: visible; }
-    .role:hover .tooltip.left { right: 60px; left: auto; }
-    .role:hover .tooltip.right { left: 60px; right: auto; }
+    .role:hover .tooltip.left { left: 60px; right: auto; }
+    .role:hover .tooltip.right { right: 60px; left: auto; }
     .category-title { margin-top: 10px; border-bottom: 1px solid #fff; padding-bottom: 5px; }
   </style>
 </head>
+
 <body>
-  <button id="toggleButton">顯示角色</button>
+  <button id="toggleButton">顯示角色偏移版</button>
   <div id="leftPanel" class="panel"></div>
   <div id="rightPanel" class="panel right"></div>
 
@@ -114,4 +116,5 @@
     loadRoles();
   </script>
 </body>
+
 </html>
