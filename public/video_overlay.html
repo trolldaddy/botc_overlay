@@ -90,13 +90,6 @@
       }
     }
 
-    if (window.Twitch && window.Twitch.ext) {
-      window.Twitch.ext.onAuthorized(auth => {
-        console.log('Twitch Extension Authorized', auth);
-        loadRoles();
-      });
-    } else {
-      console.log('Twitch Extension 未載入或未授權，直接載入角色');
       loadRoles();
     }
   </script>
