@@ -29,11 +29,12 @@
       white-space: nowrap; z-index: 1002;
     }
     .role:hover .tooltip { visibility: visible; }
+    .category-title { margin-top: 10px; border-bottom: 1px solid #fff; padding-bottom: 5px; }
   </style>
 </head>
 
 <body>
-  <button id="toggleButton">顯示角色懸停板</button>
+  <button id="toggleButton">顯示角色</button>
   <div id="leftPanel" class="panel"></div>
   <div id="rightPanel" class="panel right"></div>
 
@@ -56,8 +57,10 @@
 
         const referenceMap = Object.fromEntries(referenceList.map(r => [r.id, r]));
 
-        const leftContent = [];
-        const rightContent = [];
+        const townsfolkContent = [];
+        const outsiderContent = [];
+        const minionContent = [];
+        const demonContent = [];
 
         customList.forEach(role => {
           const ref = referenceMap[role.id];
@@ -76,14 +79,22 @@
           `;
 
           if (ref.team === 'townsfolk') {
-            leftContent.push(roleHtml);
-          } else {
-            rightContent.push(roleHtml);
+            townsfolkContent.push(roleHtml);
+          } else if (ref.team === 'outsider') {
+            outsiderContent.push(roleHtml);
+          } else if (ref.team === 'minion') {
+            minionContent.push(roleHtml);
+          } else if (ref.team === 'demon') {
+            demonContent.push(roleHtml);
           }
         });
 
-        leftPanel.innerHTML = leftContent.join('');
-        rightPanel.innerHTML = rightContent.join('');
+        leftPanel.innerHTML = `<div class="category-title">鎮民</div>${townsfolkContent.join('')}`;
+        rightPanel.innerHTML = `
+          <div class="category-title">外來者</div>${outsiderContent.join('')}
+          <div class="category-title">爪牙</div>${minionContent.join('')}
+          <div class="category-title">惡魔</div>${demonContent.join('')}
+        `;
 
       } catch (err) {
         console.error('載入角色資料失敗:', err);
