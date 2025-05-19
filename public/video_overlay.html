@@ -49,6 +49,7 @@
     });
 
     async function loadAndRender() {
+      console.log("開始載入角色資料");
       const customList = await fetch('/custom-list.json').then(r => r.json());
       const roleRef = await fetch('/role_reference_trouble_brewing.json').then(r => r.json());
 
