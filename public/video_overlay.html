@@ -7,14 +7,28 @@
   <style>
     body { margin: 0; background: transparent; font-family: Arial, sans-serif; }
     #toggleButton {
-      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-      background: #000; color: #fff; padding: 10px 20px; border: none; border-radius: 5px;
+      position: fixed;
+      bottom: 5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #000;
+      color: #fff;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
       z-index: 1001;
     }
     .panel {
-      position: fixed; top: 0; bottom: 0; width: 300px; background: rgba(0,0,0,0.85);
-      overflow-y: auto; padding: 10px; transform: translateX(-100%);
-      transition: transform 0.3s ease; color: #fff;
+      position: fixed;
+      top: 5rem;
+      bottom: 7rem;
+      width: 300px;
+      background: rgba(0,0,0,0.85);
+      overflow-y: auto;
+      padding: 10px;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+      color: #fff;
     }
     .panel.right { right: 0; left: auto; transform: translateX(100%); }
     .panel.show { transform: translateX(0); }
@@ -36,7 +50,7 @@
   </style>
 </head>
 <body>
-  <button id="toggleButton">顯示角色</button>
+  <button id="toggleButton">顯示角色碧</button>
   <div id="leftPanel" class="panel">
     <div class="category-title">鎮民</div>
     <div class="role-grid" id="townsfolkGrid"></div>
@@ -68,7 +82,7 @@
       try {
         const customList = await fetch('/custom-list.json').then(r => r.json());
         const referenceList = await fetch('/EVERY_SINGLE_ROLE_with_image_placeholders.json').then(r => r.json());
-        const referenceMap = Object.fromEntries(referenceList.map(r => [r.id, r]));
+        const referenceMap = Object.fromEntries(referenceList.map(r => [r.id.replace(/_/g, ''), r]));
 
         const grids = {
           townsfolk: document.getElementById('townsfolkGrid'),
@@ -78,8 +92,8 @@
         };
 
         customList.forEach(role => {
-          const cleanId = role.id.replace(/_/g, '');
-          const ref = referenceMap[cleanId];
+          const normalizedId = role.id.replace(/_/g, '');
+          const ref = referenceMap[normalizedId];
           if (!ref) return;
 
           const displayName = ref.name_zh || ref.name || role.id;
@@ -103,16 +117,9 @@
           container.addEventListener('mouseenter', (e) => {
             globalTooltip.textContent = ability;
             globalTooltip.style.display = 'block';
-
             const rect = container.getBoundingClientRect();
-            let offsetX = tooltipDirection === 'right' ? rect.right + 10 : rect.left - globalTooltip.offsetWidth - 10;
+            const offsetX = tooltipDirection === 'right' ? rect.right + 10 : rect.left - globalTooltip.offsetWidth - 10;
             const offsetY = rect.top + window.scrollY;
-
-            let tooltipWidth = globalTooltip.offsetWidth;
-            let screenWidth = window.innerWidth;
-            if (offsetX + tooltipWidth > screenWidth) offsetX = screenWidth - tooltipWidth - 10;
-            if (offsetX < 0) offsetX = 10;
-
             globalTooltip.style.left = `${offsetX}px`;
             globalTooltip.style.top = `${offsetY}px`;
           });
