@@ -46,8 +46,8 @@
 
     async function loadRoles() {
       try {
-        const customList = await fetch('custom-list.json').then(r => r.json());
-        const referenceList = await fetch('EVERY_SINGLE_ROLE_with_image_placeholders.json').then(r => r.json());
+        const customList = await fetch('/custom-list.json').then(r => r.json());
+        const referenceList = await fetch('/EVERY_SINGLE_ROLE_with_image_placeholders.json').then(r => r.json());
 
         const referenceMap = Object.fromEntries(referenceList.map(r => [r.id, r]));
 
