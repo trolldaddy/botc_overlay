@@ -19,14 +19,16 @@
     }
     .panel.right { right: 0; left: auto; transform: translateX(100%); }
     .panel.show { transform: translateX(0); }
+    .role-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
     .role {
-      display: inline-block; width: 50px; text-align: center; margin: 5px; position: relative;
+      display: flex; flex-direction: column; align-items: center;
+      position: relative;
     }
     .role img { width: 50px; height: 50px; display: block; }
     .tooltip {
-      visibility: hidden; background: rgba(0, 0, 0, 0.75); color: #fff; border-radius: 5px;
-      padding: 5px; position: absolute; bottom: 60px; left: 50%; transform: translateX(-50%);
-      white-space: nowrap; z-index: 1002;
+      visibility: hidden; background: rgba(0, 0, 0, 0.85); color: #fff; border-radius: 5px;
+      padding: 10px; position: absolute; bottom: 60px; left: 50%; transform: translateX(-50%);
+      white-space: normal; max-width: 250px; z-index: 1002;
     }
     .role:hover .tooltip { visibility: visible; }
     .category-title { margin-top: 10px; border-bottom: 1px solid #fff; padding-bottom: 5px; }
@@ -89,11 +91,18 @@
           }
         });
 
-        leftPanel.innerHTML = `<div class="category-title">鎮民</div>${townsfolkContent.join('')}`;
+        leftPanel.innerHTML = `
+          <div class="category-title">鎮民</div>
+          <div class="role-grid">${townsfolkContent.join('')}</div>
+        `;
+
         rightPanel.innerHTML = `
-          <div class="category-title">外來者</div>${outsiderContent.join('')}
-          <div class="category-title">爪牙</div>${minionContent.join('')}
-          <div class="category-title">惡魔</div>${demonContent.join('')}
+          <div class="category-title">外來者</div>
+          <div class="role-grid">${outsiderContent.join('')}</div>
+          <div class="category-title">爪牙</div>
+          <div class="role-grid">${minionContent.join('')}</div>
+          <div class="category-title">惡魔</div>
+          <div class="role-grid">${demonContent.join('')}</div>
         `;
 
       } catch (err) {
