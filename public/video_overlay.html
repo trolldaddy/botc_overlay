@@ -6,6 +6,7 @@
   <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
   <style>
     body { margin: 0; background: transparent; font-family: Arial, sans-serif; }
+    
     #toggleButton {
       position: fixed; bottom: 7rem; left: 50%; transform: translateX(-50%);
       background: #000; color: #fff; padding: 10px 20px; border: none; border-radius: 5px;
@@ -36,6 +37,7 @@
   </style>
 </head>
 <body>
+  <select id="scriptSelector"></select>
   <button id="toggleButton">顯示角色中文</button>
   <div id="leftPanel" class="panel">
     <div class="category-title">鎮民</div>
@@ -125,5 +127,24 @@
 
     loadRoles();
   </script>
+  <script>
+  document.addEventListener('DOMContentLoaded', async () => {
+    const scriptSelector = document.getElementById('scriptSelector');
+    try {
+      const response = await fetch('/Allscript/scripts.json'); // 假設有一個索引列表
+      const scripts = await response.json();
+      scripts.forEach(script => {
+        const option = document.createElement('option');
+        option.value = script;
+        option.textContent = script.replace('.json', '');
+        scriptSelector.appendChild(option);
+      });
+      scriptSelector.addEventListener('change', () => loadRoles(scriptSelector.value));
+      loadRoles(scriptSelector.value);
+    } catch (error) {
+      console.error('無法讀取腳本列表', error);
+    }
+  });
+</script>
 </body>
 </html>
