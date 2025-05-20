@@ -40,7 +40,7 @@
 
     async function loadScriptOptions() {
       try {
-        const res = await fetch('/Allscript/scripts.json');
+        const res = await fetch('https://botc-twitch-873087277461.asia-east1.run.app/Allscript/scripts.json');
         const scripts = await res.json();
         const select = document.getElementById('scriptSelect');
         select.innerHTML = '';
