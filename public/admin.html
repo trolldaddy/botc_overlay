@@ -1,138 +1,90 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8">
-  <title>血染鐘樓 - 實況主管理介面</title>
+  <meta charset="UTF-8" />
+  <title>BOTC Admin</title>
+  <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 800px; margin: auto; padding: 20px; }
-    select { margin-left: 10px; }
-    .seat { margin-bottom: 10px; }
+    body {
+      background-color: #111;
+      color: white;
+      font-family: 'Microsoft JhengHei', sans-serif;
+      padding: 20px;
+    }
+    label {
+      font-size: 16px;
+      margin-right: 10px;
+    }
+    select {
+      padding: 5px 10px;
+      font-size: 16px;
+    }
+    .status {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #0f0;
+    }
   </style>
 </head>
 <body>
-  <h1>血染鐘樓座位管理</h1>
-  <p>請選擇玩家人數並按下「更新座位選單」產生座位設定。</p>
-  
-  <label for="player-count">選擇玩家人數（8~15人）:</label>
-  <select id="player-count">
-    <option value="8">8</option>
-    <option value="9">9</option>
-    <option value="10">10</option>
-    <option value="11">11</option>
-    <option value="12">12</option>
-    <option value="13">13</option>
-    <option value="14">14</option>
-    <option value="15">15</option>
+  <h2>選擇要顯示的劇本</h2>
+  <label for="scriptSelect">劇本：</label>
+  <select id="scriptSelect">
+    <option>載入中...</option>
   </select>
-  <button onclick="buildForm()">更新座位選單</button>
-
-  <div id="seating-form"></div>
-  <button onclick="saveSeating()">儲存設定</button>
+  <div class="status" id="status"></div>
 
   <script>
-    let characterList = [];
-    const characterNameMap = {
-      "washerwoman": "洗衣婦",
-      "librarian": "圖書館員",
-      "investigator": "調查員",
-      "chef": "廚師",
-      "empath": "共情者",
-      "fortune_teller": "占卜師",
-      "undertaker": "喪葬者",
-      "monk": "和尚",
-      "ravenkeeper": "烏鴉守衛",
-      "virgin": "處女",
-      "slayer": "殺手",
-      "soldier": "士兵",
-      "mayor": "市長",
-      "butler": "管家",
-      "drunk": "酒鬼",
-      "recluse": "隱士",
-      "saint": "聖人",
-      "poisoner": "投毒者",
-      "spy": "間諜",
-      "scarlet_woman": "緋紅女子",
-      "baron": "男爵",
-      "imp": "惡魔",
-      "fang_gu": "方古",
-      "vortox": "渦托克斯",
-      "shabaloth": "沙巴洛斯",
-      "no_dashii": "野田氏",
-      "snake_charmer": "魅蛇者",
-      "artist": "藝術家",
-      "juggler": "雜技師",
-      "clockmaker": "鐘錶匠",
-      "dreamer": "夢者",
-      "mathematician": "數學家",
-      "seamstress": "裁縫師",
-      "town_crier": "鎮吶喊者",
-      "flowergirl": "花童",
-      "oracle": "神諭者",
-      "philosopher": "哲學家",
-      "grandmother": "祖母",
-      "sweetheart": "心上人",
-      "evil_twin": "邪惡雙胞胎",
-      "pit_hag": "坑巫",
-      "godfather": "教父",
-      "devil's_advocate": "魔鬼代言人",
-      "witch": "女巫",
-      "zhen": "鎮長",
-      "tea_lady": "茶女",
-      "noble": "貴族",
-      "bianlianshi": "變臉師",
-      "yinyangshi": "陰陽師",
-      "fisherman": "漁夫",
-      "widow": "寡婦",
-      "shijie": "使節",
-      "moonchild": "月之子",
-      "ojo": "鬼隱",
-      "kazali": "鬼火",
-      "leviathan": "利維坦",
-      "qiongqi": "窮奇"
-    };
+    let twitch = window.Twitch ? window.Twitch.ext : null;
+    let broadcasterID = '';
 
-    fetch('custom-list.json')
-      .then(response => response.json())
-      .then(data => {
-        characterList = data;
-      });
-
-    function buildForm() {
-      const container = document.getElementById('seating-form');
-      container.innerHTML = '';
-      const playerCount = parseInt(document.getElementById('player-count').value, 10);
-
-      for (let i = 1; i <= playerCount; i++) {
-        const seatDiv = document.createElement('div');
-        seatDiv.className = 'seat';
-        seatDiv.innerHTML = `座位 ${i}: <select id="seat-${i}"><option value="">（未指定）</option></select>`;
-        container.appendChild(seatDiv);
-
-        const select = seatDiv.querySelector('select');
-        characterList.forEach(char => {
+    async function loadScriptOptions() {
+      try {
+        const res = await fetch('/Allscript/scripts.json');
+        const scripts = await res.json();
+        const select = document.getElementById('scriptSelect');
+        select.innerHTML = '';
+        scripts.forEach(file => {
           const option = document.createElement('option');
-          option.value = char.id;
-          const cnName = characterNameMap[char.id] || char.id;
-          option.textContent = `${cnName} (${char.id})`;
+          option.value = file;
+          option.textContent = file.replace('.json', '');
           select.appendChild(option);
         });
+      } catch (err) {
+        console.error('無法讀取劇本列表', err);
       }
     }
 
-    function saveSeating() {
-      const seating = {};
-      const playerCount = parseInt(document.getElementById('player-count').value, 10);
-      for (let i = 1; i <= playerCount; i++) {
-        const value = document.getElementById(`seat-${i}`).value;
-        seating[`seat${i}`] = value;
+    function saveSelection(value) {
+      if (twitch && broadcasterID) {
+        twitch.configuration.set('broadcaster', '1.0', JSON.stringify({ selectedScript: value }));
+        document.getElementById('status').textContent = `已儲存劇本：${value}`;
       }
-
-      fetch('/api/seating', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(seating)
-      }).then(() => alert('座位設定已儲存'));
     }
+
+    if (twitch) {
+      twitch.onAuthorized(auth => {
+        broadcasterID = auth.userId;
+        loadScriptOptions().then(() => {
+          // 載入預設儲存值
+          if (twitch.configuration.broadcaster) {
+            try {
+              const saved = JSON.parse(twitch.configuration.broadcaster.content);
+              const select = document.getElementById('scriptSelect');
+              if (saved.selectedScript) {
+                select.value = saved.selectedScript;
+              }
+            } catch (e) {
+              console.warn('無法解析儲存的 broadcaster config');
+            }
+          }
+        });
+      });
+    }
+
+    document.getElementById('scriptSelect').addEventListener('change', e => {
+      saveSelection(e.target.value);
+    });
   </script>
 </body>
 </html>
