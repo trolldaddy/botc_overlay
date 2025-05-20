@@ -7,7 +7,7 @@
   <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
   <style>
     body { margin: 0; background: transparent; font-family: "Microsoft JhengHei", "微軟正黑體", sans-serif; }
-    
+
     #toggleButton {
       position: fixed; bottom: 7rem; left: 50%; transform: translateX(-50%);
       background: #000; color: #fff; padding: 10px 20px; border: none; border-radius: 5px;
@@ -35,12 +35,11 @@
       max-width: 90vw;
       z-index: 10000;
     }
-      /* 只套用在 鎮民 / 外來者 / 爪牙 / 惡魔 四個分類標題 */
-  .category-title {
-    font-family: "Microsoft JhengHei", "微軟正黑體", sans-serif;
-    font-size: 20px;
-    font-weight: bold;
-  }
+    .category-title {
+      font-family: "Microsoft JhengHei", "微軟正黑體", sans-serif;
+      font-size: 20px;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -72,102 +71,96 @@
       rightPanel.classList.toggle('show', isVisible);
     });
 
-   async function loadRoles(scriptFileName) {
-  try {
-    // 讀取選取的劇本
-    const customList = await fetch(`https://botc-twitch-873087277461.asia-east1.run.app/Allscript/${scriptFileName}`).then(r => r.json());
-    const referenceList = await fetch('https://botc-twitch-873087277461.asia-east1.run.app/EVERY_SINGLE_ROLE_with_chinese_abilities.json').then(r => r.json());
-    const referenceMap = Object.fromEntries(referenceList.map(r => [r.id, r]));
+    async function loadRoles(scriptFileName = 'custom-list.json') {
+      try {
+        const customList = await fetch(`https://botc-twitch-873087277461.asia-east1.run.app/Allscript/${scriptFileName}`).then(r => r.json());
+        const referenceList = await fetch('https://botc-twitch-873087277461.asia-east1.run.app/EVERY_SINGLE_ROLE_with_chinese_abilities.json').then(r => r.json());
+        const referenceMap = Object.fromEntries(referenceList.map(r => [r.id, r]));
 
-    // 清除舊有角色
-    document.getElementById('townsfolkGrid').innerHTML = '';
-    document.getElementById('outsiderGrid').innerHTML = '';
-    document.getElementById('minionGrid').innerHTML = '';
-    document.getElementById('demonGrid').innerHTML = '';
+        document.getElementById('townsfolkGrid').innerHTML = '';
+        document.getElementById('outsiderGrid').innerHTML = '';
+        document.getElementById('minionGrid').innerHTML = '';
+        document.getElementById('demonGrid').innerHTML = '';
 
-    const grids = {
-      townsfolk: document.getElementById('townsfolkGrid'),
-      outsider: document.getElementById('outsiderGrid'),
-      minion: document.getElementById('minionGrid'),
-      demon: document.getElementById('demonGrid'),
-    };
+        const grids = {
+          townsfolk: document.getElementById('townsfolkGrid'),
+          outsider: document.getElementById('outsiderGrid'),
+          minion: document.getElementById('minionGrid'),
+          demon: document.getElementById('demonGrid'),
+        };
 
-    customList.forEach(role => {
-      const ref = referenceMap[role.id]; // 不再去除底線
-      if (!ref) return;
+        customList.forEach(role => {
+          const ref = referenceMap[role.id];
+          if (!ref) return;
 
-      const displayName = ref.name_zh || ref.name || role.id;
-      const imgUrl = ref.image || '';
-      const ability = ref.ability || '';
-      const tooltipDirection = ref.team === 'townsfolk' ? 'right' : 'left';
+          const displayName = ref.name_zh || ref.name || role.id;
+          const imgUrl = ref.image || '';
+          const ability = ref.ability || '';
+          const tooltipDirection = ref.team === 'townsfolk' ? 'right' : 'left';
 
-      const container = document.createElement('div');
-      container.className = 'role';
+          const container = document.createElement('div');
+          container.className = 'role';
 
-      const img = document.createElement('img');
-      img.src = imgUrl;
-      img.alt = displayName;
+          const img = document.createElement('img');
+          img.src = imgUrl;
+          img.alt = displayName;
 
-      const label = document.createElement('div');
-      label.textContent = displayName;
+          const label = document.createElement('div');
+          label.textContent = displayName;
 
-      container.appendChild(img);
-      container.appendChild(label);
+          container.appendChild(img);
+          container.appendChild(label);
 
-      container.addEventListener('mouseenter', (e) => {
-        globalTooltip.textContent = ability;
-        globalTooltip.style.display = 'block';
-        const rect = container.getBoundingClientRect();
-        let offsetX;
-  if (tooltipDirection === 'left') {
-    offsetX = rect.left - globalTooltip.offsetWidth - 10;
-    if (offsetX < 10) offsetX = 10;
-  } else {
-    offsetX = rect.right + 10;
-    if (offsetX + globalTooltip.offsetWidth > window.innerWidth - 10) {
-      offsetX = window.innerWidth - globalTooltip.offsetWidth - 10;
-    }
-  }
-        const offsetY = rect.top + window.scrollY;
-        globalTooltip.style.left = `${offsetX}px`;
-        globalTooltip.style.top = `${offsetY}px`;
-      });
+          container.addEventListener('mouseenter', (e) => {
+            globalTooltip.textContent = ability;
+            globalTooltip.style.display = 'block';
+            const rect = container.getBoundingClientRect();
+            let offsetX;
+            if (tooltipDirection === 'left') {
+              offsetX = rect.left - globalTooltip.offsetWidth - 10;
+              if (offsetX < 10) offsetX = 10;
+            } else {
+              offsetX = rect.right + 10;
+              if (offsetX + globalTooltip.offsetWidth > window.innerWidth - 10) {
+                offsetX = window.innerWidth - globalTooltip.offsetWidth - 10;
+              }
+            }
+            const offsetY = rect.top + window.scrollY;
+            globalTooltip.style.left = `${offsetX}px`;
+            globalTooltip.style.top = `${offsetY}px`;
+          });
 
-      container.addEventListener('mouseleave', () => {
-        globalTooltip.style.display = 'none';
-      });
+          container.addEventListener('mouseleave', () => {
+            globalTooltip.style.display = 'none';
+          });
 
-      if (grids[ref.team]) {
-        grids[ref.team].appendChild(container);
+          if (grids[ref.team]) {
+            grids[ref.team].appendChild(container);
+          }
+        });
+      } catch (err) {
+        console.error('載入角色資料失敗:', err);
       }
-    });
-
-  } catch (err) {
-    console.error('載入角色資料失敗:', err);
-  }
-}
-
-
-    loadRoles();
-  </script>
-  <script>
-  document.addEventListener('DOMContentLoaded', async () => {
-    const scriptSelector = document.getElementById('scriptSelector');
-    try {
-      const response = await fetch('https://botc-twitch-873087277461.asia-east1.run.app/Allscript/scripts.json'); // 假設有一個索引列表
-      const scripts = await response.json();
-      scripts.forEach(script => {
-        const option = document.createElement('option');
-        option.value = script;
-        option.textContent = script.replace('.json', '');
-        scriptSelector.appendChild(option);
-      });
-      scriptSelector.addEventListener('change', () => loadRoles(scriptSelector.value));
-      loadRoles(scriptSelector.value);
-    } catch (error) {
-      console.error('無法讀取腳本列表', error);
     }
-  });
-</script>
+
+    if (window.Twitch && window.Twitch.ext) {
+      window.Twitch.ext.onAuthorized(auth => {
+        window.Twitch.ext.configuration.onChanged(() => {
+          try {
+            const config = JSON.parse(window.Twitch.ext.configuration.broadcaster.content);
+            if (config.selectedScript) {
+              loadRoles(config.selectedScript);
+            } else {
+              loadRoles();
+            }
+          } catch (e) {
+            loadRoles();
+          }
+        });
+      });
+    } else {
+      loadRoles();
+    }
+  </script>
 </body>
 </html>
