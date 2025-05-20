@@ -2465,4 +2465,222 @@
     "ability": "每個夜晚*，你要選擇一名玩家：他死亡。如果今天白天有外來者死亡，當晚改為你要選擇一名玩家：他死亡，但被當作仍然存活，隨後會有一名其他玩家死亡。[+1外來者]",
     "image": "https://clocktower-wiki.gstonegames.com/images/thumb/1/13/Qiongqi.png/300px-Qiongqi.png"
   }
+   [
+  {
+    "id": "ranfangfangzhu",
+    "name": "染坊坊主",
+    "team": "townsfolk",
+    "ability": "如果你在夜晚死亡，惡魔的能力變成“每個夜晚*，可能會有一名玩家死亡。”",
+    "image": "https://clocktower-wiki.gstonegames.com/images/thumb/0/05/Ranfangfangzhu.png/180px-Ranfangfangzhu.png"
+  },
+  {
+    "id": "daoshi",
+    "name": "道士",
+    "team": "townsfolk",
+    "ability": "每個夜晚*，你要選擇一名玩家：如果你選中了惡魔，你死亡，然後他醉酒直到下個黎明。",
+    "image": "https://clocktower-wiki.gstonegames.com/images/thumb/0/07/Daoshi.png/300px-Daoshi.png"
+  },
+  {
+    "id": "fangshi",
+    "name": "方士",
+    "team": "townsfolk",
+    "ability": "在你的首個夜晚，你要選擇一個數字。在該數字對應的那一個夜晚，你會得知對應數量的在場角色。",
+    "image": "https://clocktower-wiki.gstonegames.com/images/thumb/f/f5/Fangshi.png/300px-Fangshi.png"
+  },
+  {
+    "id": "fengshuishi",
+    "name": "風水師",
+    "team": "townsfolk",
+    "ability": "在你的首個夜晚，你會得知一名玩家的角色類型。每個夜晚*，你會從他的順時針方向得知下一個非旅行者玩家的角色類型。",
+    "image": "https://clocktower-wiki.gstonegames.com/images/thumb/7/73/Fengshuishi.png/180px-Fengshuishi.png"
+  },
+  {
+    "id": "xuncha",
+    "name": "巡察",
+    "team": "townsfolk",
+    "ability": "每個夜晚*，你要選擇除你以外的兩個善良角色：如果他們都存活，他們當晚不會死亡。",
+    "image": "https://clocktower-wiki.gstonegames.com/images/thumb/c/cf/Xuncha.png/300px-Xuncha.png"
+  },
+  {
+    "id": "zhen",
+    "name": "鴆",
+    "team": "townsfolk",
+    "ability": "每局遊戲限一次，在夜晚時*，你可以選擇一個鎮民角色：如果他在場，他醉酒並死亡。",
+    "image": "https://clocktower-wiki.gstonegames.com/images/thumb/4/43/Zhen.png/300px-Zhen.png"
+  },
+  {
+    "id": "yongjiang",
+    "name": "俑匠",
+    "team": "townsfolk",
+    "ability": "如果已死亡玩家中沒有邪惡玩家，你只會死於處決。",
+    "image": "https://clocktower-wiki.gstonegames.com/images/thumb/4/47/Yongjiang.png/180px-Yongjiang.png"
+  },
+  {
+    "id": "shiguan",
+    "name": "史官",
+    "team": "townsfolk",
+    "ability": "每個夜晚*，如果白天有玩家死於處決，你會得知存活鎮民的數量。",
+    "image": "https://clocktower-wiki.gstonegames.com/images/thumb/8/8a/Shiguan.png/300px-Shiguan.png"
+  },
+  {
+    "id": "xizi_new",
+    "name": "戲子",
+    "team": "townsfolk",
+    "ability": "其他善良玩家醉酒（旅行者除外），你們互相認識且無法轉變陣營，對調勝負結果，即使你失去能力。",
+    "image": "https://clocktower-wiki.gstonegames.com/images/thumb/1/13/Xizi.png/300px-Xizi.png"
+  },
+  {
+    "id": "qianke",
+    "name": "掮客",
+    "team": "townsfolk",
+    "ability": "每個夜晚，你要選擇兩名存活玩家：如果他們陣營相同，今晚任何玩家使用自身能力選擇他們之一作為目標時，改為選中另一名玩家。",
+    "image": "https://clocktower-wiki.gstonegames.com/images/thumb/5/5b/Qianke.png/300px-Qianke.png"
+  },
+  {
+    "id": "tixingguan",
+    "name": "提刑官",
+    "team": "townsfolk",
+    "ability": "在你首次提名玩家後，你會在當晚得知他的角色。外來者會被你的能力當作爪牙或惡魔角色。",
+    "image": "https://clocktower-wiki.gstonegames.com/images/thumb/1/15/Tixingguan.png/300px-Tixingguan.png"
+  },
+  {
+    "id": "chongfei",
+    "name": "寵妃",
+    "team": "townsfolk",
+    "ability": "每局遊戲限一次，說書人會在關於你的事情上打破規則。隨後，你會秘密得知說書人為此做了什麼。",
+    "image": "https://clocktower-wiki.gstonegames.com/images/thumb/3/30/Chongfei.png/180px-Chongfei.png"
+  },
+  {
+    "id": "yinluren",
+    "name": "引路人",
+    "team": "townsfolk",
+    "ability": "每個夜晚，你要選擇至多三名玩家：你會得知今晚是否有邪惡玩家的能力選擇或影響了他們之中的玩家。",
+    "image": "https://clocktower-wiki.gstonegames.com/images/thumb/0/03/Yinluren.png/300px-Yinluren.png"
+  },
+  {
+    "id": "yanshi",
+    "name": "偃師",
+    "team": "townsfolk",
+    "ability": "如果你在夜晚死亡，你與一名存活爪牙玩家交換角色。",
+    "image": "https://clocktower-wiki.gstonegames.com/images/thumb/d/d4/Yanshi.png/180px-Yanshi.png"
+  },
+  {
+    "id": "daoke",
+    "name": "刀客",
+    "team": "townsfolk",
+    "ability": "在你的首個夜晚，你會得知一個在場的爪牙角色。每局遊戲限一次，你可以在白天公開選擇一名玩家：如果他是你得知的角色，他就會死亡。",
+    "image": "https://clocktower-wiki.gstonegames.com/images/thumb/4/44/Daoke.png/180px-Daoke.png"
+  },
+  {
+    "id": "bingbi",
+    "name": "秉筆",
+    "team": "townsfolk",
+    "ability": "如果你在白天死亡，當晚你會得知一名善良玩家。如果你在夜晚死亡，當晚你會得知一名邪惡玩家。",
+    "image": "https://clocktower-wiki.gstonegames.com/images/thumb/2/2b/Bingbi.png/300px-Bingbi.png"
+  },
+  {
+    "id": "limao",
+    "name": "狸貓",
+    "team": "townsfolk",
+    "ability": "每個夜晚*，你要選擇一名玩家：如果他是善良角色且當晚被邪惡角色殺死，你和他交換角色。",
+    "image": "https://clocktower-wiki.gstonegames.com/images/thumb/a/a6/Limao.png/300px-Limao.png"
+  },
+  {
+    "id": "zhifu",
+    "name": "知府",
+    "team": "townsfolk",
+    "ability": "每個夜晚*，你會得知今天是否有非鎮民且非旅行者玩家死亡。",
+    "image": "https://clocktower-wiki.gstonegames.com/images/thumb/c/c5/Zhifu.png/300px-Zhifu.png"
+  },
+  {
+    "id": "yishi",
+    "name": "驛使",
+    "team": "townsfolk",
+    "ability": "每個白天，你可以公開聲明一個角色。在當晚，你會得知該角色是否在場。如果你因此得知了否，你失去此能力。",
+    "image": ""
+  },
+  {
+    "id": "shutong",
+    "name": "書童",
+    "team": "outsider",
+    "ability": "在你的首個夜晚，你要選擇除你以外的一名玩家：除首個夜晚以外，當他被邪惡玩家的能力選擇或影響時，你會在當晚死亡。",
+    "image": "https://clocktower-wiki.gstonegames.com/images/thumb/f/f6/Shutong.png/180px-Shutong.png"
+  },
+  {
+    "id": "jiubao",
+    "name": "酒保",
+    "team": "outsider",
+    "ability": "與你鄰近的善良玩家之一醉酒，即使你已死亡。",
+    "image": "https://clocktower-wiki.gstonegames.com/images/thumb/c/c2/Jiubao.png/180px-Jiubao.png"
+  },
+  {
+    "id": "rulianshi",
+    "name": "入殮師",
+    "team": "outsider",
+    "ability": "如果你提名並處決了惡魔，你會變成邪惡的惡魔。當剩餘存活玩家小於等於四人時（旅行者除外），你失去能力。",
+    "image": "https://clocktower-wiki.gstonegames.com/images/thumb/9/9b/Rulianshi.png/180px-Rulianshi.png"
+  },
+  {
+    "id": "mengpo",
+    "name": "孟婆",
+    "team": "minion",
+    "ability": "每個夜晚*，你要選擇一名玩家：如果他存活，那麼他要選擇讓自己失去能力，或死亡並保留能力直到下個黃昏。",
+    "image": "https://clocktower-wiki.gstonegames.com/images/thumb/e/e4/Mengpo.png/180px-Mengpo.png"
+  },
+  {
+    "id": "niangjiushi",
+    "name": "釀酒師",
+    "team": "minion",
+    "ability": "每個夜晚，你要選擇一個鎮民角色：當他下一次透過自身能力獲取資訊時，改為得知你給予的資訊。",
+    "image": "https://clocktower-wiki.gstonegames.com/images/thumb/e/ea/Niangjiushi.png/300px-Niangjiushi.png"
+  },
+  {
+    "id": "gudiao",
+    "name": "蠱雕",
+    "team": "minion",
+    "ability": "每個夜晚，你要選擇左或右：你得知該方向上的下一名存活善良玩家的角色，他中毒且其他善良玩家以為他是邪惡的蠱雕，直到下個黃昏。",
+    "image": "https://clocktower-wiki.gstonegames.com/images/thumb/5/56/Gudiao.png/180px-Gudiao.png"
+  },
+  {
+    "id": "huapi",
+    "name": "畫皮",
+    "team": "minion",
+    "ability": "在你的首個夜晚，你要選擇一名存活玩家：他死亡但會被當作存活。當他下一次死亡時，他重生，隨後你重獲能力。",
+    "image": "https://clocktower-wiki.gstonegames.com/images/thumb/5/59/Huapi.png/180px-Huapi.png"
+  },
+  {
+    "id": "yanluo",
+    "name": "閻羅",
+    "team": "demon",
+    "ability": "在你的首個夜晚，你能查看魔典並選擇一名玩家：他在第三個夜晚死亡，即使因為任何原因讓他不會死亡。每個夜晚，你要選擇一名玩家：上個夜晚被你選擇的玩家死亡。",
+    "image": "https://clocktower-wiki.gstonegames.com/images/thumb/c/c8/Yanluo.png/180px-Yanluo.png"
+  },
+  {
+    "id": "guhuoniao",
+    "name": "姑獲鳥",
+    "team": "demon",
+    "ability": "每個夜晚*，你要選擇一名玩家：他死亡。你可能會擁有上一個死於處決的爪牙的能力。",
+    "image": "https://clocktower-wiki.gstonegames.com/images/thumb/3/38/Guhuoniao.png/180px-Guhuoniao.png"
+  },
+  {
+    "id": "baojun",
+    "name": "暴君",
+    "team": "demon",
+    "ability": "每個夜晚*，你可以選擇至多兩名玩家：他們死亡。你選擇的玩家數量不能與上個夜晚死亡的玩家數量相同（超過二人時算二人）。",
+    "image": "https://clocktower-wiki.gstonegames.com/images/thumb/c/c5/Baojun.png/180px-Baojun.png"
+  },
+  {
+    "id": "dianyuzhang",
+    "name": "典獄長",
+    "team": "demon",
+    "ability": "每個夜晚，你要選擇至多三名玩家：如果明天白天他們之一死於處決，上次被你選擇的其他玩家會在當晚死亡。否則，當晚他們之中會有一名玩家死亡。",
+    "image": "https://clocktower-wiki.gstonegames.com/images/thumb/d/db/Dianyuzhang.png/180px-Dianyuzhang.png"
+  },
+  {
+    "id": "jianning",
+    "name": "姦佞",
+    "team": "demon",
+    "ability": "每個夜晚*，你要選擇一名玩家：他死亡。如果你今天白天沒有投票，今晚你可以行動兩次。",
+    "image": "https://clocktower-wiki.gstonegames.com/images/thumb/3/3a/Jianning.png/300px-Jianning.png"
+  }
 ]
