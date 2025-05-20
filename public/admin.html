@@ -1,90 +1,83 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8" />
-  <title>BOTC Admin</title>
+  <meta charset="UTF-8">
+  <title>BOTC Admin Panel</title>
   <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
   <style>
-    body {
-      background-color: #111;
+    body { font-family: "Microsoft JhengHei", sans-serif; background-color: #111; color: white; padding: 2rem; }
+    label { display: block; margin: 1rem 0 0.5rem; }
+    select, button {
+      font-size: 1rem;
+      padding: 0.5rem;
+      background-color: #222;
       color: white;
-      font-family: 'Microsoft JhengHei', sans-serif;
-      padding: 20px;
+      border: 1px solid #555;
+      border-radius: 5px;
     }
-    label {
-      font-size: 16px;
-      margin-right: 10px;
-    }
-    select {
-      padding: 5px 10px;
-      font-size: 16px;
-    }
-    .status {
-      margin-top: 10px;
-      font-size: 14px;
-      color: #0f0;
-    }
+    #status { margin-top: 1rem; color: lightgreen; }
   </style>
 </head>
 <body>
-  <h2>選擇要顯示的劇本</h2>
-  <label for="scriptSelect">劇本：</label>
-  <select id="scriptSelect">
-    <option>載入中...</option>
-  </select>
-  <div class="status" id="status"></div>
+  <h2>選擇本場遊戲要顯示的劇本</h2>
+  <label for="scriptSelector">劇本列表：</label>
+  <select id="scriptSelector"></select>
+  <button id="saveButton">儲存設定</button>
+  <div id="status"></div>
 
   <script>
-    let twitch = window.Twitch ? window.Twitch.ext : null;
-    let broadcasterID = '';
+    const scriptSelector = document.getElementById('scriptSelector');
+    const saveButton = document.getElementById('saveButton');
+    const status = document.getElementById('status');
+    let broadcasterAuthorized = false;
 
-    async function loadScriptOptions() {
+    async function loadScriptList() {
       try {
         const res = await fetch('https://botc-twitch-873087277461.asia-east1.run.app/Allscript/scripts.json');
         const scripts = await res.json();
-        const select = document.getElementById('scriptSelect');
-        select.innerHTML = '';
-        scripts.forEach(file => {
+        scriptSelector.innerHTML = '';
+        scripts.forEach(filename => {
           const option = document.createElement('option');
-          option.value = file;
-          option.textContent = file.replace('.json', '');
-          select.appendChild(option);
+          option.value = filename;
+          option.textContent = filename;
+          scriptSelector.appendChild(option);
         });
       } catch (err) {
-        console.error('無法讀取劇本列表', err);
+        status.textContent = '載入劇本清單失敗';
+        console.error(err);
       }
     }
 
-    function saveSelection(value) {
-      if (twitch && broadcasterID) {
-        twitch.configuration.set('broadcaster', '1.0', JSON.stringify({ selectedScript: value }));
-        document.getElementById('status').textContent = `已儲存劇本：${value}`;
+    function saveSelectedScript() {
+      const selectedScript = scriptSelector.value;
+      const payload = { selectedScript };
+      if (broadcasterAuthorized && window.Twitch.ext.configuration.set) {
+        window.Twitch.ext.configuration.set('broadcaster', '1.0', JSON.stringify(payload));
+        status.textContent = `✅ 已儲存：${selectedScript}`;
       }
     }
 
-    if (twitch) {
-      twitch.onAuthorized(auth => {
-        broadcasterID = auth.userId;
-        loadScriptOptions().then(() => {
-          // 載入預設儲存值
-          if (twitch.configuration.broadcaster) {
+    loadScriptList();
+
+    saveButton.addEventListener('click', saveSelectedScript);
+
+    if (window.Twitch && window.Twitch.ext) {
+      window.Twitch.ext.onAuthorized(auth => {
+        broadcasterAuthorized = true;
+        window.Twitch.ext.configuration.onChanged(() => {
+          if (window.Twitch.ext.configuration.broadcaster?.content) {
             try {
-              const saved = JSON.parse(twitch.configuration.broadcaster.content);
-              const select = document.getElementById('scriptSelect');
-              if (saved.selectedScript) {
-                select.value = saved.selectedScript;
+              const config = JSON.parse(window.Twitch.ext.configuration.broadcaster.content);
+              if (config.selectedScript) {
+                scriptSelector.value = config.selectedScript;
               }
             } catch (e) {
-              console.warn('無法解析儲存的 broadcaster config');
+              console.warn('無法解析設定');
             }
           }
         });
       });
     }
-
-    document.getElementById('scriptSelect').addEventListener('change', e => {
-      saveSelection(e.target.value);
-    });
   </script>
 </body>
 </html>
