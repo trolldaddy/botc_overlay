@@ -2596,7 +2596,7 @@
     "name": "驛使",
     "team": "townsfolk",
     "ability": "每個白天，你可以公開聲明一個角色。在當晚，你會得知該角色是否在場。如果你因此得知了否，你失去此能力。",
-    "image": ""
+    "image": "https://clocktower-wiki.gstonegames.com/images/thumb/6/64/Yishi.png/180px-Yishi.png"
   },
   {
     "id": "shutong",
