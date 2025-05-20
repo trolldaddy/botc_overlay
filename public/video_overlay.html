@@ -146,10 +146,12 @@
      console.log('Twitch.ext loaded:', window.Twitch?.ext);
       window.Twitch.ext.onAuthorized(auth => {
         console.log('AUTHORIZED:', auth);
+        console.log('broadcaster config:', window.Twitch.ext.configuration.broadcaster);
         window.Twitch.ext.configuration.onChanged(() => {
           console.log('CONFIG:', window.Twitch.ext.configuration.broadcaster?.content);
           try {
             const config = JSON.parse(window.Twitch.ext.configuration.broadcaster.content);
+            console.log('Parsed config:', config);
             if (config.selectedScript) {
               loadRoles(config.selectedScript);
             } else {
