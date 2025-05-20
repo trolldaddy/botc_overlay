@@ -142,10 +142,12 @@
         console.error('載入角色資料失敗:', err);
       }
     }
-
     if (window.Twitch && window.Twitch.ext) {
+     console.log('Twitch.ext loaded:', window.Twitch?.ext);
       window.Twitch.ext.onAuthorized(auth => {
+        console.log('AUTHORIZED:', auth);
         window.Twitch.ext.configuration.onChanged(() => {
+          console.log('CONFIG:', window.Twitch.ext.configuration.broadcaster?.content);
           try {
             const config = JSON.parse(window.Twitch.ext.configuration.broadcaster.content);
             if (config.selectedScript) {
@@ -154,12 +156,14 @@
               loadRoles();
             }
           } catch (e) {
-            loadRoles();
+            console.error('配置解析錯誤，使用預設 custom-list.json', e);
+        loadRoles();
           }
         });
       });
     } else {
-      loadRoles();
+      console.warn('Twitch Extension 未載入，使用 fallback custom-list.json');
+  loadRoles();
     }
   </script>
 </body>
