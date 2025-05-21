@@ -104,7 +104,7 @@
 
     
     async function loadRolesFromList(roleList) {
-      const referenceList = await fetch('https://botc-twitch-873087277461.asia-east1.run.app/EVERY_SINGLE_ROLE_with_chinese_abilities.json').then(r => r.json());
+      const referenceList = await fetch('/EVERY_SINGLE_ROLE_with_chinese_abilities.json').then(r => r.json());
       const referenceMap = Object.fromEntries(referenceList.map(r => [r.id, r]));
 
       document.getElementById('townsfolkGrid').innerHTML = '';
