@@ -142,9 +142,9 @@ function handleConfigChange() {
       fetch(`/Allscript/${config.selectedScript}`)
         .then(r => r.json())
         .then(loadRolesFromList)
-        .catch(() => fetch('/Allscript/trouble-brewing.json').then(r => r.json()).then(loadRolesFromList));
+        .catch(() => fetch('/Allscript/trouble_brewing.json').then(r => r.json()).then(loadRolesFromList));
     } else {
-      fetch('/Allscript/trouble-brewing.json').then(r => r.json()).then(loadRolesFromList);
+      fetch('/Allscript/trouble_brewing.json').then(r => r.json()).then(loadRolesFromList);
     }
   } catch (e) {
     console.error('解析設定錯誤:', e);
@@ -166,19 +166,19 @@ function handleConfigChange() {
                 .then(r => r.json())
                 .then(loadRolesFromList);
             } else {
-              fetch('/custom-list.json')
+              fetch('/Allscript/trouble_brewing.json')
                 .then(r => r.json())
                 .then(loadRolesFromList);
             }
           } catch (e) {
             console.error('解析設定失敗，使用 fallback：', e);
-            fetch('/Allscript/custom-list.json')
+            fetch('/Allscript/trouble_brewing.json')
               .then(r => r.json())
               .then(loadRolesFromList);
           }
         });
       } else {
-        fetch('/Allscript/custom-list.json')
+        fetch('/Allscript/trouble_brewing.json')
           .then(r => r.json())
           .then(loadRolesFromList);
       }
