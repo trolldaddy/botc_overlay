@@ -29,12 +29,11 @@
     const customJsonEl = document.getElementById('customJson');
     const saveButton = document.getElementById('saveButton');
 
-    fetch('/Allscript/')
-      .then(res => res.text())
-      .then(text => {
-        const files = Array.from(text.matchAll(/href="([^"]+\.json)"/g)).map(m => m[1]);
+  fetch('/Allscript/scripts.json')
+      .then(res => res.json())
+      .then(scripts => {
         scriptListEl.innerHTML = `<option value="">-- 請選擇劇本 --</option>` +
-          files.map(f => `<option value="${f}">${f}</option>`).join('') +
+          scripts.map(f => `<option value="${f}">${f}</option>`).join('') +
           `<option value="__custom__">自訂劇本</option>`;
       });
 
