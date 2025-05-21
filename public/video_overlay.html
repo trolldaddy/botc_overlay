@@ -2,159 +2,193 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BOTC Overlay</title>
   <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
   <style>
-    body { margin: 0; background: transparent; font-family: "Microsoft JhengHei", sans-serif; }
+    body {
+      margin: 0;
+      font-family: "Microsoft JhengHei", sans-serif;
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+    }
     #toggleButton {
-      position: fixed; bottom: 7rem; left: 50%; transform: translateX(-50%);
-      background: #000; color: #fff; padding: 10px 20px; border-radius: 5px;
-      z-index: 1001;
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: black;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      z-index: 9999;
     }
     .panel {
-      position: fixed; top: 5rem; bottom: 7rem; width: 300px; background: rgba(0,0,0,0.85);
-      overflow-y: auto; padding: 10px; transform: translateX(-100%);
-      transition: transform 0.3s ease; color: #fff;
-    }
-    .panel.right { right: 0; left: auto; transform: translateX(100%); }
-    .panel.show { transform: translateX(0); }
-    .role-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-    .role { display: flex; flex-direction: column; align-items: center; position: relative; }
-    .role img { width: 95px; height: 95px; display: block; }
-    .category-title { margin-top: 10px; border-bottom: 1px solid #fff; padding-bottom: 5px; font-weight: bold; font-size: 20px; }
-    #globalTooltip {
-      display: none;
       position: fixed;
-      background: rgba(0, 0, 0, 0.85);
-      color: #fff;
-      border-radius: 5px;
+      top: 5rem;
+      bottom: 0;
+      width: 50%;
+      background: rgba(0, 0, 0, 0.9);
+      overflow-y: auto;
+      transition: transform 0.3s ease;
+    }
+    #leftPanel {
+      left: 0;
+      transform: translateX(-100%);
+    }
+    #rightPanel {
+      right: 0;
+      transform: translateX(100%);
+    }
+    .panel.open {
+      transform: translateX(0);
+    }
+    .category-title {
+      font-size: 1.25rem;
+      font-weight: bold;
+      border-bottom: 1px solid white;
+      padding: 0.5rem;
+    }
+    .role-grid {
+      display: flex;
+      flex-wrap: wrap;
+      padding: 0.5rem;
+    }
+    .role-entry {
+      width: 100px;
+      margin: 10px;
+      text-align: center;
+      position: relative;
+    }
+    .role-entry img {
+      width: 65px;
+      height: 65px;
+    }
+    .tooltip {
+      position: absolute;
+      max-width: 300px;
+      background: rgba(0,0,0,0.8);
+      color: white;
       padding: 5px 10px;
+      border-radius: 5px;
       white-space: normal;
-      max-width: 90vw;
-      z-index: 10000;
+      display: none;
+      z-index: 99999;
     }
   </style>
 </head>
 <body>
   <button id="toggleButton">顯示角色中文</button>
-  <div id="leftPanel" class="panel">
-    <div class="category-title">鎮民</div>
-    <div class="role-grid" id="townsfolkGrid"></div>
-  </div>
-  <div id="rightPanel" class="panel right">
-    <div class="category-title">外來者</div>
-    <div class="role-grid" id="outsiderGrid"></div>
-    <div class="category-title">爪牙</div>
-    <div class="role-grid" id="minionGrid"></div>
-    <div class="category-title">惡魔</div>
-    <div class="role-grid" id="demonGrid"></div>
-  </div>
-  <div id="globalTooltip"></div>
+  <div id="leftPanel" class="panel"></div>
+  <div id="rightPanel" class="panel"></div>
+  <div id="globalTooltip" class="tooltip"></div>
+
   <script>
     const leftPanel = document.getElementById('leftPanel');
     const rightPanel = document.getElementById('rightPanel');
     const toggleButton = document.getElementById('toggleButton');
     const globalTooltip = document.getElementById('globalTooltip');
-    let isVisible = false;
+    let panelsVisible = false;
 
     toggleButton.addEventListener('click', () => {
-      isVisible = !isVisible;
-      leftPanel.classList.toggle('show', isVisible);
-      rightPanel.classList.toggle('show', isVisible);
+      panelsVisible = !panelsVisible;
+      if (panelsVisible) {
+        leftPanel.classList.add('open');
+        rightPanel.classList.add('open');
+      } else {
+        leftPanel.classList.remove('open');
+        rightPanel.classList.remove('open');
+      }
     });
 
-    async function loadRolesFromList(roleList) {
-      const referenceList = await fetch('https://botc-twitch-873087277461.asia-east1.run.app/EVERY_SINGLE_ROLE_with_chinese_abilities.json').then(r => r.json());
-      const referenceMap = Object.fromEntries(referenceList.map(r => [r.id, r]));
+    function renderRoles(customList) {
+      leftPanel.innerHTML = '<div class="category-title">鎮民</div><div class="role-grid" id="townsfolkGrid"></div>';
+      rightPanel.innerHTML = '<div class="category-title">外來者</div><div class="role-grid" id="outsiderGrid"></div>' +
+                             '<div class="category-title">爪牙</div><div class="role-grid" id="minionGrid"></div>' +
+                             '<div class="category-title">惡魔</div><div class="role-grid" id="demonGrid"></div>';
 
-      document.getElementById('townsfolkGrid').innerHTML = '';
-      document.getElementById('outsiderGrid').innerHTML = '';
-      document.getElementById('minionGrid').innerHTML = '';
-      document.getElementById('demonGrid').innerHTML = '';
+      fetch('https://botc-twitch-873087277461.asia-east1.run.app/EVERY_SINGLE_ROLE_with_image_placeholders.json')
+        .then(res => res.json())
+        .then(referenceList => {
+          const referenceMap = Object.fromEntries(referenceList.map(r => [r.id, r]));
+          customList.forEach(role => {
+            const roleData = referenceMap[role.id];
+            if (!roleData) return;
+            const container = document.createElement('div');
+            container.className = 'role-entry';
 
-      const grids = {
-        townsfolk: document.getElementById('townsfolkGrid'),
-        outsider: document.getElementById('outsiderGrid'),
-        minion: document.getElementById('minionGrid'),
-        demon: document.getElementById('demonGrid')
-      };
+            const img = document.createElement('img');
+            img.src = roleData.image;
+            img.alt = roleData.name_zh || roleData.name || role.id;
 
-      roleList.forEach(role => {
-        const ref = referenceMap[role.id];
-        if (!ref) return;
+            const label = document.createElement('div');
+            label.textContent = roleData.name_zh || roleData.name || role.id;
 
-        const displayName = ref.name_zh || ref.name || role.id;
-        const imgUrl = ref.image || '';
-        const ability = ref.ability || '';
-        const tooltipDirection = ref.team === 'townsfolk' ? 'right' : 'left';
+            container.appendChild(img);
+            container.appendChild(label);
 
-        const container = document.createElement('div');
-        container.className = 'role';
+            container.addEventListener('mouseenter', e => {
+              globalTooltip.textContent = roleData.ability_zh || roleData.ability || '';
+              globalTooltip.style.display = 'block';
+              const rect = container.getBoundingClientRect();
+              const isRight = window.innerWidth / 2 < rect.left;
+              const left = isRight
+                ? Math.max(0, rect.left - globalTooltip.offsetWidth - 10)
+                : Math.min(window.innerWidth - globalTooltip.offsetWidth, rect.right + 10);
+              globalTooltip.style.left = `${left}px`;
+              globalTooltip.style.top = `${rect.top + window.scrollY}px`;
+            });
 
-        const img = document.createElement('img');
-        img.src = imgUrl;
-        img.alt = displayName;
+            container.addEventListener('mouseleave', () => {
+              globalTooltip.style.display = 'none';
+            });
 
-        const label = document.createElement('div');
-        label.textContent = displayName;
-
-        container.appendChild(img);
-        container.appendChild(label);
-
-        container.addEventListener('mouseenter', () => {
-          globalTooltip.textContent = ability;
-          globalTooltip.style.display = 'block';
-          const rect = container.getBoundingClientRect();
-          let offsetX = tooltipDirection === 'left'
-            ? Math.max(10, rect.left - globalTooltip.offsetWidth - 10)
-            : Math.min(window.innerWidth - globalTooltip.offsetWidth - 10, rect.right + 10);
-          const offsetY = rect.top + window.scrollY;
-          globalTooltip.style.left = `${offsetX}px`;
-          globalTooltip.style.top = `${offsetY}px`;
+            if (roleData.team === '鎮民') {
+              document.getElementById('townsfolkGrid').appendChild(container);
+            } else if (roleData.team === '外來者') {
+              document.getElementById('outsiderGrid').appendChild(container);
+            } else if (roleData.team === '爪牙') {
+              document.getElementById('minionGrid').appendChild(container);
+            } else if (roleData.team === '惡魔') {
+              document.getElementById('demonGrid').appendChild(container);
+            }
+          });
         });
-        container.addEventListener('mouseleave', () => {
-          globalTooltip.style.display = 'none';
-        });
-
-        if (grids[ref.team]) {
-          grids[ref.team].appendChild(container);
-        }
-      });
     }
 
-    async function init() {
-      if (window.Twitch && window.Twitch.ext) {
-        window.Twitch.ext.onAuthorized(() => {
-          const cfgStr = window.Twitch.ext.configuration?.broadcaster?.content;
-          try {
-            const cfg = JSON.parse(cfgStr || '{}');
-            if (cfg.customJson) {
-              const parsed = JSON.parse(cfg.customJson);
-              loadRolesFromList(parsed);
-            } else if (cfg.selectedScript) {
-              fetch(`https://botc-twitch-873087277461.asia-east1.run.app/Allscript/${cfg.selectedScript}`)
-                .then(r => r.json())
-                .then(loadRolesFromList);
-            } else {
-              fetch('https://botc-twitch-873087277461.asia-east1.run.app/Allscript/custom-list.json')
-                .then(r => r.json())
-                .then(loadRolesFromList);
-            }
-          } catch (e) {
-            console.error('解析設定失敗，使用 fallback：', e);
-            fetch('https://botc-twitch-873087277461.asia-east1.run.app/Allscript/custom-list.json')
-              .then(r => r.json())
-              .then(loadRolesFromList);
-          }
-        });
-      } else {
-        fetch('https://botc-twitch-873087277461.asia-east1.run.app/Allscript/custom-list.json')
-          .then(r => r.json())
-          .then(loadRolesFromList);
+    function handleConfigChange() {
+      const configStr = window.Twitch.ext.configuration.broadcaster?.content;
+      if (!configStr) return;
+      try {
+        const config = JSON.parse(configStr);
+        if (config.customJson) {
+          const customList = JSON.parse(config.customJson);
+          renderRoles(customList);
+        } else if (config.selectedScript) {
+          fetch(`/Allscript/${config.selectedScript}`)
+            .then(r => r.json())
+            .then(renderRoles)
+            .catch(() => fetch('/custom-list.json').then(r => r.json()).then(renderRoles));
+        } else {
+          fetch('/custom-list.json').then(r => r.json()).then(renderRoles);
+        }
+      } catch (e) {
+        console.error('解析設定錯誤:', e);
+        fetch('/custom-list.json').then(r => r.json()).then(renderRoles);
       }
     }
 
-    init();
+    if (window.Twitch && window.Twitch.ext) {
+      window.Twitch.ext.onAuthorized(() => {
+        handleConfigChange();
+        window.Twitch.ext.configuration.onChanged(() => {
+          handleConfigChange();
+        });
+      });
+    } else {
+      fetch('/custom-list.json').then(r => r.json()).then(renderRoles);
+    }
   </script>
 </body>
 </html>
