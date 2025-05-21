@@ -72,8 +72,11 @@
       leftPanel.classList.toggle('show', isVisible);
       rightPanel.classList.toggle('show', isVisible);
     });
-    refreshButton.addEventListener('click', handleConfigChange);
-
+    refreshButton.addEventListener('click', () => {
+  console.log("🔁 手動觸發重新載入");
+  Twitch.ext.send("broadcast", "application/json", { type: "REFRESH_REQUEST" });
+  handleConfigChange(); // fallback，也可以強制抓一次
+});
     
     async function loadRolesFromList(roleList) {
       const referenceList = await fetch('https://botc-twitch-873087277461.asia-east1.run.app/EVERY_SINGLE_ROLE_with_chinese_abilities.json').then(r => r.json());
