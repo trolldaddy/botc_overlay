@@ -72,11 +72,36 @@
       leftPanel.classList.toggle('show', isVisible);
       rightPanel.classList.toggle('show', isVisible);
     });
-    refreshButton.addEventListener('click', () => {
-  console.log("🔁 手動觸發重新載入");
-  Twitch.ext.send("broadcast", "application/json", { type: "REFRESH_REQUEST" });
-  handleConfigChange(); // fallback，也可以強制抓一次
+  refreshButton.addEventListener('click', () => {
+  console.log("🔁 手動重新載入");
+
+  // 強制觸發 onChanged 設定回調一次
+  const configStr = window.Twitch?.ext?.configuration?.broadcaster?.content;
+  if (!configStr) {
+    console.warn("⚠ 無設定內容可重新載入");
+    return;
+  }
+
+  try {
+    const config = JSON.parse(configStr);
+    console.log("🧩 目前設定內容：", config);
+
+    if (config.selectedScript === '__custom__' && config.customJson) {
+      const customList = JSON.parse(config.customJson);
+      loadRolesFromList(customList);
+    } else if (config.selectedScript) {
+      fetch(`/Allscript/${config.selectedScript}`)
+        .then(r => r.json())
+        .then(loadRolesFromList)
+        .catch(() => fetch('/Allscript/trouble-brewing.json').then(r => r.json()).then(loadRolesFromList));
+    } else {
+      fetch('/Allscript/trouble-brewing.json').then(r => r.json()).then(loadRolesFromList);
+    }
+  } catch (err) {
+    console.error("❌ 設定解析錯誤", err);
+  }
 });
+
     
     async function loadRolesFromList(roleList) {
       const referenceList = await fetch('https://botc-twitch-873087277461.asia-east1.run.app/EVERY_SINGLE_ROLE_with_chinese_abilities.json').then(r => r.json());
