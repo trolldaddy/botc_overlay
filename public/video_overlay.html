@@ -155,17 +155,6 @@
     }
 
     init();
-    if (window.Twitch?.ext) {
-  window.Twitch.ext.onAuthorized(() => {
-    // 初次讀取
-    handleConfigChange();
-
-    // 之後如有變更
-    window.Twitch.ext.configuration.onChanged(() => {
-      handleConfigChange();
-    });
-  });
-}
-  </script>
+     </script>
 </body>
 </html>
