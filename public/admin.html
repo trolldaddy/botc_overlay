@@ -100,6 +100,25 @@
     });
 
     fetchScripts();
+
+    // 回填 Twitch.ext.configuration 當前選項（非必要但方便使用者）
+    if (window.Twitch && window.Twitch.ext) {
+      window.Twitch.ext.onAuthorized(() => {
+        if (window.Twitch.ext.configuration.broadcaster?.content) {
+          try {
+            const config = JSON.parse(window.Twitch.ext.configuration.broadcaster.content);
+            if (config.selectedScript) {
+              scriptListEl.value = config.selectedScript;
+              customJsonEl.value = '';
+            } else if (config.customJson) {
+              customJsonEl.value = config.customJson;
+            }
+          } catch (e) {
+            console.error('回填設定錯誤:', e);
+          }
+        }
+      });
+    }
   </script>
 </body>
 </html>
