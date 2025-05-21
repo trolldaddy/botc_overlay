@@ -133,27 +133,28 @@
         }
       });
     }
- function handleConfigChange() {
-      const configStr = window.Twitch.ext.configuration.broadcaster?.content;
-      if (!configStr) return;
-      try {
-        const config = JSON.parse(configStr);
-        if (config.selectedScript === '__custom__' && config.customJson) {
-          const customList = JSON.parse(config.customJson);
-          loadRolesFromList(customList);
-        } else if (config.selectedScript) {
-          fetch(`/Allscript/${config.selectedScript}`)
-            .then(r => r.json())
-            .then(loadRolesFromList)
-            .catch(() => fetch('/Allscript/trouble-brewing.json').then(r => r.json()).then(loadRolesFromList));
-        } else {
-          fetch('/Allscript/trouble-brewing.json').then(r => r.json()).then(loadRolesFromList);
-        }
-      } catch (e) {
-        console.error('解析設定錯誤:', e);
-        fetch('/Allscript/trouble-brewing.json').then(r => r.json()).then(loadRolesFromList);
-      }
+function handleConfigChange() {
+  const configStr = window.Twitch.ext.configuration.broadcaster?.content;
+  if (!configStr) return;
+  try {
+    const config = JSON.parse(configStr);
+    if (config.selectedScript === '__custom__' && config.customJson) {
+      const customList = JSON.parse(config.customJson);
+      loadRolesFromList(customList);
+    } else if (config.selectedScript) {
+      fetch(`/Allscript/${config.selectedScript}`)
+        .then(r => r.json())
+        .then(loadRolesFromList)
+        .catch(() => fetch('/Allscript/trouble-brewing.json').then(r => r.json()).then(loadRolesFromList));
+    } else {
+      fetch('/Allscript/trouble-brewing.json').then(r => r.json()).then(loadRolesFromList);
     }
+  } catch (e) {
+    console.error('解析設定錯誤:', e);
+    fetch('/Allscript/trouble-brewing.json').then(r => r.json()).then(loadRolesFromList);
+  }
+}
+
 
     async function init() {
       if (window.Twitch && window.Twitch.ext) {
