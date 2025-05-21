@@ -6,10 +6,18 @@
   <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
   <style>
     body { margin: 0; background: transparent; font-family: "Microsoft JhengHei", sans-serif; }
-    #toggleButton {
-      position: fixed; bottom: 7rem; left: 50%; transform: translateX(-50%);
+    #toggleButton, #refreshButton{
+      position: fixed; bottom: 7rem;
       background: #000; color: #fff; padding: 10px 20px; border-radius: 5px;
       z-index: 1001;
+    }
+       #toggleButton {
+      left: 40%;
+      transform: translateX(-50%);
+    }
+    #refreshButton {
+      left: 60%;
+      transform: translateX(-50%);
     }
     .panel {
       position: fixed; top: 5rem; bottom: 7rem; width: 300px; background: rgba(0,0,0,0.85);
@@ -37,6 +45,7 @@
 </head>
 <body>
   <button id="toggleButton">顯示角色中文</button>
+   <button id="refreshButton">重新載入</button>
   <div id="leftPanel" class="panel">
     <div class="category-title">鎮民</div>
     <div class="role-grid" id="townsfolkGrid"></div>
@@ -54,6 +63,7 @@
     const leftPanel = document.getElementById('leftPanel');
     const rightPanel = document.getElementById('rightPanel');
     const toggleButton = document.getElementById('toggleButton');
+    const refreshButton = document.getElementById('refreshButton');
     const globalTooltip = document.getElementById('globalTooltip');
     let isVisible = false;
 
@@ -62,7 +72,9 @@
       leftPanel.classList.toggle('show', isVisible);
       rightPanel.classList.toggle('show', isVisible);
     });
-
+    refreshButton.addEventListener('click', () => {
+      handleConfigChange();
+    });
     async function loadRolesFromList(roleList) {
       const referenceList = await fetch('https://botc-twitch-873087277461.asia-east1.run.app/EVERY_SINGLE_ROLE_with_chinese_abilities.json').then(r => r.json());
       const referenceMap = Object.fromEntries(referenceList.map(r => [r.id, r]));
@@ -120,6 +132,27 @@
           grids[ref.team].appendChild(container);
         }
       });
+    }
+function handleConfigChange() {
+      const configStr = window.Twitch.ext.configuration.broadcaster?.content;
+      if (!configStr) return;
+      try {
+        const config = JSON.parse(configStr);
+        if (config.customJson) {
+          const customList = JSON.parse(config.customJson);
+          renderRoles(customList);
+        } else if (config.selectedScript) {
+          fetch(`/Allscript/${config.selectedScript}`)
+            .then(r => r.json())
+            .then(renderRoles)
+            .catch(() => fetch('/custom-list.json').then(r => r.json()).then(renderRoles));
+        } else {
+          fetch('/custom-list.json').then(r => r.json()).then(renderRoles);
+        }
+      } catch (e) {
+        console.error('解析設定錯誤:', e);
+        fetch('/custom-list.json').then(r => r.json()).then(renderRoles);
+      }
     }
 
     async function init() {
