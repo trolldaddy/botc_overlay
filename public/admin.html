@@ -47,8 +47,8 @@
   const customJson = customJsonEl.value.trim();
 
   const content = selectedScript === '__custom__'
-    ? { selectedScript, customJson }
-    : { selectedScript };
+    ? { selectedScript, customJson ,_timestamp: Date.now() }
+    : { selectedScript,_timestamp: Date.now() };
 
   if (window.Twitch?.ext?.configuration) {
     window.Twitch.ext.configuration.set('broadcaster', '1', JSON.stringify(content));
