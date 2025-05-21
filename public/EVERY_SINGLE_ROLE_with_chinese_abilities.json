@@ -181,6 +181,13 @@
     "ability": "如果只剩 3 名玩家存活且沒有發生處決，則你所屬的陣營獲勝。若你在夜晚被殺害，可能會由其他玩家代替你死亡。",
     "image": "/Allicon/240px-Mayor.png"
   },
+    {
+        "id":"steward",
+        "name":"事務官",
+        "team":"townsfolk",
+        "ability":"在你的首個夜晚，你會得知一位善良玩家。",
+        "image":"/Allicon/240px-Steward.png"
+    },   
   {
     "id": "butler",
     "name": "管家",
