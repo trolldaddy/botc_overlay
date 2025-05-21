@@ -162,23 +162,23 @@ function handleConfigChange() {
               const parsed = JSON.parse(cfg.customJson);
               loadRolesFromList(parsed);
             } else if (cfg.selectedScript) {
-              fetch(`https://botc-twitch-873087277461.asia-east1.run.app/Allscript/${cfg.selectedScript}`)
+              fetch(`/${cfg.selectedScript}`)
                 .then(r => r.json())
                 .then(loadRolesFromList);
             } else {
-              fetch('https://botc-twitch-873087277461.asia-east1.run.app/Allscript/custom-list.json')
+              fetch('/custom-list.json')
                 .then(r => r.json())
                 .then(loadRolesFromList);
             }
           } catch (e) {
             console.error('解析設定失敗，使用 fallback：', e);
-            fetch('https://botc-twitch-873087277461.asia-east1.run.app/Allscript/custom-list.json')
+            fetch('/Allscript/custom-list.json')
               .then(r => r.json())
               .then(loadRolesFromList);
           }
         });
       } else {
-        fetch('https://botc-twitch-873087277461.asia-east1.run.app/Allscript/custom-list.json')
+        fetch('/Allscript/custom-list.json')
           .then(r => r.json())
           .then(loadRolesFromList);
       }
