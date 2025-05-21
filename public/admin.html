@@ -2,82 +2,104 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <title>BOTC Admin Panel</title>
+  <title>BOTC Overlay 設定</title>
   <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
   <style>
-    body { font-family: "Microsoft JhengHei", sans-serif; background-color: #111; color: white; padding: 2rem; }
-    label { display: block; margin: 1rem 0 0.5rem; }
-    select, button {
-      font-size: 1rem;
-      padding: 0.5rem;
-      background-color: #222;
-      color: white;
-      border: 1px solid #555;
-      border-radius: 5px;
+    body {
+      margin: 0;
+      padding: 2rem;
+      background: #111;
+      color: #fff;
+      font-family: "Microsoft JhengHei", sans-serif;
     }
-    #status { margin-top: 1rem; color: lightgreen; }
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    label {
+      display: block;
+      margin-top: 1rem;
+    }
+    select, textarea, button {
+      margin-top: 0.5rem;
+      font-size: 1rem;
+    }
+    select, button {
+      padding: 0.5rem;
+    }
+    textarea {
+      width: 100%;
+      height: 200px;
+      padding: 1rem;
+      font-family: monospace;
+      background: #222;
+      color: #0f0;
+      border: 1px solid #444;
+      resize: vertical;
+    }
+    .status {
+      margin-top: 1rem;
+      color: #0f0;
+    }
   </style>
 </head>
 <body>
-  <h2>選擇本場遊戲要顯示的劇本</h2>
-  <label for="scriptSelector">劇本列表：</label>
-  <select id="scriptSelector"></select>
+  <h1>選擇本場遊戲要顯示的劇本</h1>
+  <label for="scriptList">劇本列表：</label>
+  <select id="scriptList"></select>
+
+  <label for="customJson">或貼上自訂劇本 JSON：</label>
+  <textarea id="customJson" placeholder="在此貼上 JSON..."></textarea>
+
   <button id="saveButton">儲存設定</button>
-  <div id="status"></div>
+  <div id="status" class="status"></div>
 
   <script>
-    const scriptSelector = document.getElementById('scriptSelector');
+    const scriptListEl = document.getElementById('scriptList');
+    const customJsonEl = document.getElementById('customJson');
     const saveButton = document.getElementById('saveButton');
-    const status = document.getElementById('status');
-    let broadcasterAuthorized = false;
+    const statusEl = document.getElementById('status');
 
-    async function loadScriptList() {
+    const scriptApi = 'https://botc-twitch-873087277461.asia-east1.run.app/Allscript';
+
+    async function fetchScripts() {
       try {
-        const res = await fetch('https://botc-twitch-873087277461.asia-east1.run.app/Allscript/scripts.json');
+        const res = await fetch(`${scriptApi}/scripts.json`);
         const scripts = await res.json();
-        scriptSelector.innerHTML = '';
-        scripts.forEach(filename => {
-          const option = document.createElement('option');
-          option.value = filename;
-          option.textContent = filename;
-          scriptSelector.appendChild(option);
+        scripts.forEach(file => {
+          const opt = document.createElement('option');
+          opt.value = file;
+          opt.textContent = file;
+          scriptListEl.appendChild(opt);
         });
       } catch (err) {
-        status.textContent = '載入劇本清單失敗';
-        console.error(err);
+        console.error('讀取劇本列表失敗', err);
       }
     }
 
-    function saveSelectedScript() {
-      const selectedScript = scriptSelector.value;
-      const payload = { selectedScript };
-      if (broadcasterAuthorized && window.Twitch.ext.configuration.set) {
-        window.Twitch.ext.configuration.set('broadcaster', '1.0', JSON.stringify(payload));
-        status.textContent = `✅ 已儲存：${selectedScript}`;
+    function saveConfig(scriptName, customContent) {
+      if (!window.Twitch?.ext) return;
+      const content = customContent ? { customJson: customContent } : { selectedScript: scriptName };
+      window.Twitch.ext.configuration.set('broadcaster', '1', JSON.stringify(content));
+      statusEl.textContent = `✅ 已儲存：${customContent ? '自訂 JSON 劇本' : scriptName}`;
+    }
+
+    saveButton.addEventListener('click', () => {
+      const selected = scriptListEl.value;
+      const customContent = customJsonEl.value.trim();
+      if (customContent) {
+        try {
+          JSON.parse(customContent);
+          saveConfig(null, customContent);
+        } catch (e) {
+          alert('貼上的 JSON 格式錯誤！');
+        }
+      } else {
+        saveConfig(selected);
       }
-    }
+    });
 
-    loadScriptList();
-
-    saveButton.addEventListener('click', saveSelectedScript);
-
-    if (window.Twitch && window.Twitch.ext) {
-      window.Twitch.ext.onAuthorized(auth => {
-        broadcasterAuthorized = true;
-        window.Twitch.ext.configuration.onChanged(() => {
-          if (window.Twitch.ext.configuration.broadcaster?.content) {
-            try {
-              const config = JSON.parse(window.Twitch.ext.configuration.broadcaster.content);
-              if (config.selectedScript) {
-                scriptSelector.value = config.selectedScript;
-              }
-            } catch (e) {
-              console.warn('無法解析設定');
-            }
-          }
-        });
-      });
-    }
+    fetchScripts();
   </script>
 </body>
 </html>
