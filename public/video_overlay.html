@@ -156,40 +156,19 @@ function handleConfigChange() {
   }
 }
 
+// 無需 init()，直接在最下方做初始化即可
+if (window.Twitch && window.Twitch.ext) {
+  window.Twitch.ext.onAuthorized(() => {
+    handleConfigChange();
+    window.Twitch.ext.configuration.onChanged(() => {
+      handleConfigChange();
+    });
+  });
+} else {
+  fetch('/Allscript/trouble-brewing.json').then(r => r.json()).then(loadRolesFromList);
+}
 
-    async function init() {
-      if (window.Twitch && window.Twitch.ext) {
-        window.Twitch.ext.onAuthorized(() => {
-          const cfgStr = window.Twitch.ext.configuration?.broadcaster?.content;
-          try {
-            const cfg = JSON.parse(cfgStr || '{}');
-            if (cfg.customJson) {
-              const parsed = JSON.parse(cfg.customJson);
-              loadRolesFromList(parsed);
-            } else if (cfg.selectedScript) {
-              fetch(`/Allscript/${cfg.selectedScript}`)
-                .then(r => r.json())
-                .then(loadRolesFromList);
-            } else {
-              fetch('/Allscript/custom-list.json')
-                .then(r => r.json())
-                .then(loadRolesFromList);
-            }
-          } catch (e) {
-            console.error('解析設定失敗，使用 fallback：', e);
-            fetch('/Allscript/custom-list.json')
-              .then(r => r.json())
-              .then(loadRolesFromList);
-          }
-        });
-      } else {
-        fetch('/Allscript/custom-list.json')
-          .then(r => r.json())
-          .then(loadRolesFromList);
-      }
-    }
-
-    init();
+   
      </script>
 </body>
 </html>
