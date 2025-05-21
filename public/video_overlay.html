@@ -134,6 +134,7 @@
       });
     }
 function handleConfigChange() {
+  console.log("🔁 手動觸發重新載入");
   const configStr = window.Twitch.ext.configuration.broadcaster?.content;
   if (!configStr) return;
   try {
