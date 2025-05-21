@@ -22,6 +22,7 @@
   </div>
 
   <button id="saveButton">儲存設定</button>
+  <div id="statusMessage" style="color: lightgreen; margin-top: 10px;"></div>
 
   <script>
     const scriptListEl = document.getElementById('scriptList');
@@ -41,21 +42,22 @@
       customJsonBlock.style.display = scriptListEl.value === '__custom__' ? 'block' : 'none';
     });
 
-    saveButton.addEventListener('click', () => {
-      const selectedScript = scriptListEl.value;
-      const customJson = customJsonEl.value.trim();
+  saveButton.addEventListener('click', () => {
+  const selectedScript = scriptListEl.value;
+  const customJson = customJsonEl.value.trim();
 
-      const content = selectedScript === '__custom__'
-        ? { selectedScript, customJson }
-        : { selectedScript };
+  const content = selectedScript === '__custom__'
+    ? { selectedScript, customJson }
+    : { selectedScript };
 
-      if (window.Twitch?.ext?.configuration) {
-        window.Twitch.ext.configuration.set('broadcaster', '1', JSON.stringify(content));
-        alert('設定已儲存');
-      } else {
-        alert('無法存取 Twitch Extension API');
-      }
-    });
+  if (window.Twitch?.ext?.configuration) {
+    window.Twitch.ext.configuration.set('broadcaster', '1', JSON.stringify(content));
+    document.getElementById('statusMessage').textContent = '✅ 設定已儲存！請切換 Overlay 測試結果';
+  } else {
+    document.getElementById('statusMessage').textContent = '❌ 無法存取 Twitch Extension API';
+  }
+});
+
 
     if (window.Twitch?.ext) {
       window.Twitch.ext.configuration.onChanged(() => {
