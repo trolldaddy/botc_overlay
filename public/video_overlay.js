@@ -1,4 +1,3 @@
- <script>
     const leftPanel = document.getElementById('leftPanel');
     const rightPanel = document.getElementById('rightPanel');
     const toggleButton = document.getElementById('toggleButton');
@@ -128,5 +127,3 @@ function handleConfigChange() {
     }
 
     init();
-   
-     </script>
