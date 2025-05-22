@@ -1,4 +1,3 @@
-  <script>
     const scriptListEl = document.getElementById('scriptList');
     const customJsonBlock = document.getElementById('customJsonBlock');
     const customJsonEl = document.getElementById('customJson');
@@ -44,4 +43,3 @@
         } catch {}
       });
     }
-  </script>
