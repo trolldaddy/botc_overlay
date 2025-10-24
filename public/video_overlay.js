@@ -4,23 +4,12 @@ const toggleButton = document.getElementById('toggleButton');
 const globalTooltip = document.getElementById('globalTooltip');
 
 let isVisible = false;
-let lastServerConfigSignature = null;
-let serverPollTimer = null;
-let hasActiveTwitchConfig = false;
+let lastCookieSignature = null;
+let cookiePollTimer = null;
+let isUsingTwitchConfig = false;
 
 const urlParams = new URLSearchParams(window.location.search);
-const rawApiBase = urlParams.get('apiBase') || urlParams.get('server') || '';
 const rawAssetsBase = urlParams.get('assetsBase') || '';
-
-let apiBaseUrl = null;
-if (rawApiBase) {
-  try {
-    apiBaseUrl = new URL(rawApiBase, window.location.href);
-  } catch (err) {
-    console.warn('指定的 apiBase 無法解析，將改用預設來源:', err);
-    apiBaseUrl = null;
-  }
-}
 
 let assetBaseUrl = null;
 if (rawAssetsBase) {
@@ -29,21 +18,6 @@ if (rawAssetsBase) {
   } catch (err) {
     console.warn('指定的 assetsBase 無法解析，將改用預設來源:', err);
     assetBaseUrl = null;
-  }
-} else if (apiBaseUrl) {
-  assetBaseUrl = apiBaseUrl;
-}
-
-function resolveApiUrl(path) {
-  if (!apiBaseUrl) {
-    return path;
-  }
-
-  try {
-    return new URL(path, apiBaseUrl).toString();
-  } catch (err) {
-    console.warn('組合 API URL 時發生錯誤，將改用原始路徑:', err);
-    return path;
   }
 }
 
@@ -62,13 +36,8 @@ function resolveAssetUrl(path) {
 }
 
 const DEFAULT_SCRIPT = 'trouble_brewing.json';
-const SERVER_CONFIG_ENDPOINT = resolveApiUrl('/api/overlay-config');
-
-function withCacheBusting(url) {
-  const baseUrl = typeof url === 'string' ? new URL(url, window.location.href) : new URL(url);
-  baseUrl.searchParams.set('_ts', Date.now().toString());
-  return baseUrl.toString();
-}
+const OVERLAY_CONFIG_COOKIE = 'botc_overlay_config_v1';
+const COOKIE_POLL_INTERVAL = 5000;
 
 function togglePanels() {
   isVisible = !isVisible;
@@ -77,6 +46,33 @@ function togglePanels() {
 }
 
 toggleButton.addEventListener('click', togglePanels);
+
+function getCookie(name) {
+  const match = document.cookie
+    .split(';')
+    .map(part => part.trim())
+    .find(part => part.startsWith(`${name}=`));
+
+  if (!match) {
+    return '';
+  }
+
+  return decodeURIComponent(match.substring(name.length + 1));
+}
+
+function loadConfigFromCookie() {
+  const raw = getCookie(OVERLAY_CONFIG_COOKIE);
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    console.warn('解析 Overlay 設定 Cookie 失敗:', err);
+    return null;
+  }
+}
 
 async function loadRolesFromList(roleList) {
   if (!Array.isArray(roleList)) {
@@ -198,77 +194,61 @@ function applyConfig(config) {
   return loadDefaultScript();
 }
 
-function ensureServerPolling() {
-  if (serverPollTimer !== null) {
+async function applyCookieConfig(force = false) {
+  if (!force && isUsingTwitchConfig) {
     return;
   }
 
-  serverPollTimer = setInterval(() => {
-    fetchAndApplyServerConfig();
-  }, 5000);
-}
-
-async function fetchConfigFromServer() {
-  const response = await fetch(withCacheBusting(SERVER_CONFIG_ENDPOINT), {
-    cache: 'no-store'
-  });
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
-  }
-  return response.json();
-}
-
-async function fetchAndApplyServerConfig(force = false) {
-  if (!force && hasActiveTwitchConfig) {
+  const config = loadConfigFromCookie();
+  const signature = JSON.stringify(config || {});
+  if (!force && signature === lastCookieSignature) {
     return;
   }
 
-  try {
-    const config = await fetchConfigFromServer();
-    const signature = JSON.stringify(config || {});
-    if (!force && signature === lastServerConfigSignature) {
-      return;
-    }
+  lastCookieSignature = signature;
 
-    lastServerConfigSignature = signature;
-
-    if (!config || Object.keys(config).length === 0) {
-      await loadDefaultScript();
-      return;
-    }
-
+  if (config && typeof config === 'object' && Object.keys(config).length > 0) {
     await applyConfig(config);
-  } catch (err) {
-    console.warn('讀取伺服器設定失敗，將使用預設劇本:', err);
-    if (lastServerConfigSignature === null) {
-      await loadDefaultScript();
-      lastServerConfigSignature = '{}';
-    }
+  } else {
+    await loadDefaultScript();
   }
+}
+
+function ensureCookiePolling() {
+  if (cookiePollTimer !== null) {
+    return;
+  }
+
+  cookiePollTimer = setInterval(() => {
+    applyCookieConfig(false).catch(err => {
+      console.warn('更新 Cookie 設定時發生錯誤:', err);
+    });
+  }, COOKIE_POLL_INTERVAL);
 }
 
 async function handleTwitchConfigChange() {
   const configStr = window.Twitch?.ext?.configuration?.broadcaster?.content;
   if (!configStr) {
-    hasActiveTwitchConfig = false;
-    await fetchAndApplyServerConfig(true);
+    isUsingTwitchConfig = false;
+    await applyCookieConfig(true);
     return;
   }
 
   try {
     const config = JSON.parse(configStr);
     if (!config || Object.keys(config).length === 0) {
-      hasActiveTwitchConfig = false;
-      await fetchAndApplyServerConfig(true);
+      isUsingTwitchConfig = false;
+      await applyCookieConfig(true);
       return;
     }
 
-    hasActiveTwitchConfig = true;
+    isUsingTwitchConfig = true;
+    lastCookieSignature = JSON.stringify(loadConfigFromCookie() || {});
     await applyConfig(config);
   } catch (err) {
-    console.error('解析 Twitch 設定錯誤，改用伺服器或預設劇本:', err);
-    hasActiveTwitchConfig = false;
-    await fetchAndApplyServerConfig(true);
+    console.error('解析 Twitch 設定錯誤，改用 Cookie 或預設劇本:', err);
+    isUsingTwitchConfig = false;
+    await applyCookieConfig(true);
   }
 }
 
@@ -290,13 +270,13 @@ function setupTwitchIntegration() {
 }
 
 async function init() {
-  ensureServerPolling();
+  ensureCookiePolling();
   const hasTwitch = setupTwitchIntegration();
 
   if (hasTwitch) {
     await handleTwitchConfigChange();
   } else {
-    await fetchAndApplyServerConfig(true);
+    await applyCookieConfig(true);
   }
 }
 

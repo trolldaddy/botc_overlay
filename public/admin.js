@@ -1,4 +1,4 @@
-const apiTargetNotice = document.getElementById('apiTargetNotice');
+const storageNotice = document.getElementById('storageNotice');
 const scriptListEl = document.getElementById('scriptList');
 const customJsonBlock = document.getElementById('customJsonBlock');
 const customNameEl = document.getElementById('customName');
@@ -7,71 +7,8 @@ const saveCustomButton = document.getElementById('saveCustomButton');
 const deleteCustomButton = document.getElementById('deleteCustomButton');
 const saveButton = document.getElementById('saveButton');
 const statusMessage = document.getElementById('statusMessage');
-
-const urlParams = new URLSearchParams(window.location.search);
-const rawApiBase = urlParams.get('apiBase') || urlParams.get('server') || '';
-const rawAssetsBase = urlParams.get('assetsBase') || '';
-
-let apiBaseUrl;
-try {
-  apiBaseUrl = rawApiBase
-    ? new URL(rawApiBase, window.location.href)
-    : new URL(window.location.origin);
-} catch (err) {
-  console.warn('指定的 apiBase 無法解析，將改用預設來源:', err);
-  apiBaseUrl = new URL(window.location.origin);
-}
-
-let assetBaseUrl = null;
-if (rawAssetsBase) {
-  try {
-    assetBaseUrl = new URL(rawAssetsBase, window.location.href);
-  } catch (err) {
-    console.warn('指定的 assetsBase 無法解析，將改用預設來源:', err);
-    assetBaseUrl = null;
-  }
-} else if (rawApiBase) {
-  assetBaseUrl = apiBaseUrl;
-}
-
-if (apiTargetNotice) {
-  const normalizeBase = (urlObj) => {
-    if (!urlObj) {
-      return '';
-    }
-
-    const path = urlObj.pathname.endsWith('/') && urlObj.pathname !== '/'
-      ? urlObj.pathname.slice(0, -1)
-      : urlObj.pathname;
-    return `${urlObj.origin}${path}`;
-  };
-
-  const apiBaseText = rawApiBase
-    ? normalizeBase(apiBaseUrl)
-    : '目前頁面所在的伺服器';
-  const assetBaseText = assetBaseUrl
-    ? normalizeBase(assetBaseUrl)
-    : '目前頁面所在的伺服器';
-
-  const baseLines = [
-    `API 儲存目標：<strong>${apiBaseText}</strong>`,
-    rawAssetsBase || rawApiBase
-      ? `<br />劇本檔案讀取來源：<strong>${assetBaseText}</strong>`
-      : ''
-  ];
-
-  if (!rawApiBase) {
-    baseLines.push('<br />如需指定其他伺服器，請在網址後加上 <code>?apiBase=https://example.com</code>。');
-  }
-
-  if (!rawAssetsBase && rawApiBase) {
-    baseLines.push('<br />若劇本檔案存放在不同位置，可再加上 <code>&amp;assetsBase=https://example.com/path/</code>。');
-  }
-
-  apiTargetNotice.innerHTML = baseLines.join('');
-}
-
 const CUSTOM_JSON_COOKIE = 'botc_custom_json';
+const OVERLAY_CONFIG_COOKIE = 'botc_overlay_config_v1';
 const COOKIE_TTL_DAYS = 30;
 const LOCAL_SCRIPTS_KEY = 'botc_saved_custom_scripts_v1';
 const LOCAL_OPTION_PREFIX = 'local:';
@@ -86,33 +23,12 @@ const STATUS_COLORS = {
   info: '#9ec5fe'
 };
 
-function buildApiUrl(path) {
-  try {
-    return new URL(path, apiBaseUrl).toString();
-  } catch (err) {
-    console.warn('組合 API URL 時發生錯誤，將改用原始路徑:', err);
-    return path;
-  }
-}
-
-function buildApiUrlNoCache(path) {
-  const url = new URL(buildApiUrl(path), window.location.href);
-  url.searchParams.set('_ts', Date.now().toString());
-  return url.toString();
-}
-
-function buildAssetUrl(path) {
-  const base = assetBaseUrl;
-  if (!base) {
-    return path;
-  }
-
-  try {
-    return new URL(path, base).toString();
-  } catch (err) {
-    console.warn('組合資源 URL 時發生錯誤，將改用原始路徑:', err);
-    return path;
-  }
+if (storageNotice) {
+  storageNotice.innerHTML = [
+    '✅ 儲存設定時會同時更新 Twitch 擴充設定與瀏覽器 Cookie。',
+    '<br />',
+    '📌 Cookie 名稱為 <code>botc_overlay_config_v1</code>，覆蓋頁面會讀取此資料以顯示最新劇本。'
+  ].join('');
 }
 
 function showStatus(message, type = 'success') {
@@ -146,6 +62,28 @@ function persistCustomJson(value) {
 
 function loadCustomJsonFromCookie() {
   return getCookie(CUSTOM_JSON_COOKIE);
+}
+
+function persistOverlayConfig(content) {
+  try {
+    setCookie(OVERLAY_CONFIG_COOKIE, JSON.stringify(content), COOKIE_TTL_DAYS);
+  } catch (err) {
+    console.warn('儲存 Overlay 設定到 Cookie 時失敗:', err);
+  }
+}
+
+function loadOverlayConfigFromCookie() {
+  const raw = getCookie(OVERLAY_CONFIG_COOKIE);
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    console.warn('解析 Overlay 設定 Cookie 失敗:', err);
+    return null;
+  }
 }
 
 function loadSavedCustomScripts() {
@@ -281,7 +219,10 @@ function handleScriptSelectionChange() {
 }
 
 function updateFormFromConfig(config) {
-  if (config) {
+  if (config && typeof config === 'object') {
+    if (Object.keys(config).length > 0) {
+      persistOverlayConfig(config);
+    }
     const { selectedScript = '', customJson = '', customName = '' } = config;
 
     if (selectedScript && selectedScript !== CUSTOM_NEW_OPTION) {
@@ -320,39 +261,6 @@ function updateFormFromConfig(config) {
   }
 }
 
-async function saveConfigToServer(content) {
-  const response = await fetch(buildApiUrlNoCache('/api/overlay-config'), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(content),
-    cache: 'no-store'
-  });
-
-  if (!response.ok) {
-    throw new Error(`儲存伺服器設定失敗 (HTTP ${response.status})`);
-  }
-}
-
-async function loadConfigFromServer() {
-  try {
-    const response = await fetch(buildApiUrlNoCache('/api/overlay-config'), {
-      cache: 'no-store'
-    });
-    if (!response.ok) {
-      throw new Error(`讀取伺服器設定失敗 (HTTP ${response.status})`);
-    }
-
-    const config = await response.json();
-    if (!config || Object.keys(config).length === 0) {
-      return null;
-    }
-    return config;
-  } catch (err) {
-    console.warn('讀取伺服器設定時發生問題:', err);
-    return null;
-  }
-}
-
 function readConfigFromTwitch() {
   const configStr = window.Twitch?.ext?.configuration?.broadcaster?.content;
   if (!configStr) {
@@ -375,7 +283,11 @@ function setupTwitchListeners() {
 
   const applyCurrentConfig = () => {
     const config = readConfigFromTwitch();
-    updateFormFromConfig(config);
+    if (config) {
+      updateFormFromConfig(config);
+    } else {
+      updateFormFromConfig(loadOverlayConfigFromCookie());
+    }
   };
 
   twitchExt.onAuthorized(() => {
@@ -394,7 +306,7 @@ async function initializeConfigForm() {
   savedCustomScripts = loadSavedCustomScripts();
 
   try {
-    const loadedScripts = await fetch(buildAssetUrl('/Allscript/scripts.json'))
+    const loadedScripts = await fetch('/Allscript/scripts.json')
       .then(res => {
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}`);
@@ -413,8 +325,7 @@ async function initializeConfigForm() {
   handleScriptSelectionChange();
 
   if (!setupTwitchListeners()) {
-    const serverConfig = await loadConfigFromServer();
-    updateFormFromConfig(serverConfig);
+    updateFormFromConfig(loadOverlayConfigFromCookie());
   }
 }
 
@@ -548,17 +459,11 @@ saveButton.addEventListener('click', async () => {
   showStatus('💾 儲存中...', 'info');
 
   try {
+    persistOverlayConfig(content);
     if (window.Twitch?.ext?.configuration) {
       window.Twitch.ext.configuration.set('broadcaster', '1', JSON.stringify(content));
-      try {
-        await saveConfigToServer(content);
-      } catch (syncErr) {
-        console.warn('已更新 Twitch 設定，但同步至伺服器時發生問題:', syncErr);
-      }
-    } else {
-      await saveConfigToServer(content);
     }
-    showStatus('✅ 設定已儲存！請切換 Overlay 測試結果');
+    showStatus('✅ 設定已儲存並寫入 Cookie！請切換 Overlay 測試結果');
   } catch (err) {
     console.error('儲存設定失敗:', err);
     showStatus('❌ 儲存設定失敗，請稍後再試', 'error');
