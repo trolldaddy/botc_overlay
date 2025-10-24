@@ -5,6 +5,8 @@ const globalTooltip = document.getElementById('globalTooltip');
 
 let isVisible = false;
 let lastServerConfigSignature = null;
+let serverPollTimer = null;
+let hasActiveTwitchConfig = false;
 
 const DEFAULT_SCRIPT = 'trouble_brewing.json';
 const SERVER_CONFIG_ENDPOINT = '/api/overlay-config';
@@ -134,41 +136,14 @@ function applyConfig(config) {
   return loadDefaultScript();
 }
 
-function handleTwitchConfigChange() {
-  const configStr = window.Twitch?.ext?.configuration?.broadcaster?.content;
-  if (!configStr) {
-    return loadDefaultScript();
+function ensureServerPolling() {
+  if (serverPollTimer !== null) {
+    return;
   }
 
-  try {
-    const config = JSON.parse(configStr);
-    return applyConfig(config);
-  } catch (err) {
-    console.error('解析 Twitch 設定錯誤，改用預設劇本:', err);
-    return loadDefaultScript();
-  }
-}
-
-function setupTwitchIntegration() {
-  const twitchExt = window.Twitch?.ext;
-  if (!twitchExt) {
-    return false;
-  }
-
-  const trigger = () => {
-    handleTwitchConfigChange();
-  };
-
-  twitchExt.onAuthorized(() => {
-    trigger();
-  });
-
-  twitchExt.configuration?.onChanged?.(() => {
-    trigger();
-  });
-
-  trigger();
-  return true;
+  serverPollTimer = setInterval(() => {
+    fetchAndApplyServerConfig();
+  }, 5000);
 }
 
 async function fetchConfigFromServer() {
@@ -179,11 +154,15 @@ async function fetchConfigFromServer() {
   return response.json();
 }
 
-async function fetchAndApplyServerConfig() {
+async function fetchAndApplyServerConfig(force = false) {
+  if (!force && hasActiveTwitchConfig) {
+    return;
+  }
+
   try {
     const config = await fetchConfigFromServer();
     const signature = JSON.stringify(config || {});
-    if (signature === lastServerConfigSignature) {
+    if (!force && signature === lastServerConfigSignature) {
       return;
     }
 
@@ -204,11 +183,56 @@ async function fetchAndApplyServerConfig() {
   }
 }
 
+async function handleTwitchConfigChange() {
+  const configStr = window.Twitch?.ext?.configuration?.broadcaster?.content;
+  if (!configStr) {
+    hasActiveTwitchConfig = false;
+    await fetchAndApplyServerConfig(true);
+    return;
+  }
+
+  try {
+    const config = JSON.parse(configStr);
+    if (!config || Object.keys(config).length === 0) {
+      hasActiveTwitchConfig = false;
+      await fetchAndApplyServerConfig(true);
+      return;
+    }
+
+    hasActiveTwitchConfig = true;
+    await applyConfig(config);
+  } catch (err) {
+    console.error('解析 Twitch 設定錯誤，改用伺服器或預設劇本:', err);
+    hasActiveTwitchConfig = false;
+    await fetchAndApplyServerConfig(true);
+  }
+}
+
+function setupTwitchIntegration() {
+  const twitchExt = window.Twitch?.ext;
+  if (!twitchExt) {
+    return false;
+  }
+
+  const trigger = () => {
+    handleTwitchConfigChange().catch(err => {
+      console.error('處理 Twitch 設定時發生錯誤:', err);
+    });
+  };
+
+  twitchExt.onAuthorized(trigger);
+  twitchExt.configuration?.onChanged?.(trigger);
+  return true;
+}
+
 async function init() {
+  ensureServerPolling();
   const hasTwitch = setupTwitchIntegration();
-  if (!hasTwitch) {
-    await fetchAndApplyServerConfig();
-    setInterval(fetchAndApplyServerConfig, 5000);
+
+  if (hasTwitch) {
+    await handleTwitchConfigChange();
+  } else {
+    await fetchAndApplyServerConfig(true);
   }
 }
 
