@@ -1,3 +1,4 @@
+const apiTargetNotice = document.getElementById('apiTargetNotice');
 const scriptListEl = document.getElementById('scriptList');
 const customJsonBlock = document.getElementById('customJsonBlock');
 const customNameEl = document.getElementById('customName');
@@ -6,6 +7,69 @@ const saveCustomButton = document.getElementById('saveCustomButton');
 const deleteCustomButton = document.getElementById('deleteCustomButton');
 const saveButton = document.getElementById('saveButton');
 const statusMessage = document.getElementById('statusMessage');
+
+const urlParams = new URLSearchParams(window.location.search);
+const rawApiBase = urlParams.get('apiBase') || urlParams.get('server') || '';
+const rawAssetsBase = urlParams.get('assetsBase') || '';
+
+let apiBaseUrl;
+try {
+  apiBaseUrl = rawApiBase
+    ? new URL(rawApiBase, window.location.href)
+    : new URL(window.location.origin);
+} catch (err) {
+  console.warn('指定的 apiBase 無法解析，將改用預設來源:', err);
+  apiBaseUrl = new URL(window.location.origin);
+}
+
+let assetBaseUrl = null;
+if (rawAssetsBase) {
+  try {
+    assetBaseUrl = new URL(rawAssetsBase, window.location.href);
+  } catch (err) {
+    console.warn('指定的 assetsBase 無法解析，將改用預設來源:', err);
+    assetBaseUrl = null;
+  }
+} else if (rawApiBase) {
+  assetBaseUrl = apiBaseUrl;
+}
+
+if (apiTargetNotice) {
+  const normalizeBase = (urlObj) => {
+    if (!urlObj) {
+      return '';
+    }
+
+    const path = urlObj.pathname.endsWith('/') && urlObj.pathname !== '/'
+      ? urlObj.pathname.slice(0, -1)
+      : urlObj.pathname;
+    return `${urlObj.origin}${path}`;
+  };
+
+  const apiBaseText = rawApiBase
+    ? normalizeBase(apiBaseUrl)
+    : '目前頁面所在的伺服器';
+  const assetBaseText = assetBaseUrl
+    ? normalizeBase(assetBaseUrl)
+    : '目前頁面所在的伺服器';
+
+  const baseLines = [
+    `API 儲存目標：<strong>${apiBaseText}</strong>`,
+    rawAssetsBase || rawApiBase
+      ? `<br />劇本檔案讀取來源：<strong>${assetBaseText}</strong>`
+      : ''
+  ];
+
+  if (!rawApiBase) {
+    baseLines.push('<br />如需指定其他伺服器，請在網址後加上 <code>?apiBase=https://example.com</code>。');
+  }
+
+  if (!rawAssetsBase && rawApiBase) {
+    baseLines.push('<br />若劇本檔案存放在不同位置，可再加上 <code>&amp;assetsBase=https://example.com/path/</code>。');
+  }
+
+  apiTargetNotice.innerHTML = baseLines.join('');
+}
 
 const CUSTOM_JSON_COOKIE = 'botc_custom_json';
 const COOKIE_TTL_DAYS = 30;
@@ -21,6 +85,29 @@ const STATUS_COLORS = {
   error: '#ff8080',
   info: '#9ec5fe'
 };
+
+function buildApiUrl(path) {
+  try {
+    return new URL(path, apiBaseUrl).toString();
+  } catch (err) {
+    console.warn('組合 API URL 時發生錯誤，將改用原始路徑:', err);
+    return path;
+  }
+}
+
+function buildAssetUrl(path) {
+  const base = assetBaseUrl;
+  if (!base) {
+    return path;
+  }
+
+  try {
+    return new URL(path, base).toString();
+  } catch (err) {
+    console.warn('組合資源 URL 時發生錯誤，將改用原始路徑:', err);
+    return path;
+  }
+}
 
 function showStatus(message, type = 'success') {
   statusMessage.textContent = message;
@@ -228,7 +315,7 @@ function updateFormFromConfig(config) {
 }
 
 async function saveConfigToServer(content) {
-  const response = await fetch('/api/overlay-config', {
+  const response = await fetch(buildApiUrl('/api/overlay-config'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(content)
@@ -241,7 +328,7 @@ async function saveConfigToServer(content) {
 
 async function loadConfigFromServer() {
   try {
-    const response = await fetch('/api/overlay-config');
+    const response = await fetch(buildApiUrl('/api/overlay-config'));
     if (!response.ok) {
       throw new Error(`讀取伺服器設定失敗 (HTTP ${response.status})`);
     }
@@ -298,7 +385,7 @@ async function initializeConfigForm() {
   savedCustomScripts = loadSavedCustomScripts();
 
   try {
-    const loadedScripts = await fetch('/Allscript/scripts.json')
+    const loadedScripts = await fetch(buildAssetUrl('/Allscript/scripts.json'))
       .then(res => {
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}`);

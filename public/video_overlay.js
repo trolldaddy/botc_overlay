@@ -8,8 +8,61 @@ let lastServerConfigSignature = null;
 let serverPollTimer = null;
 let hasActiveTwitchConfig = false;
 
+const urlParams = new URLSearchParams(window.location.search);
+const rawApiBase = urlParams.get('apiBase') || urlParams.get('server') || '';
+const rawAssetsBase = urlParams.get('assetsBase') || '';
+
+let apiBaseUrl = null;
+if (rawApiBase) {
+  try {
+    apiBaseUrl = new URL(rawApiBase, window.location.href);
+  } catch (err) {
+    console.warn('指定的 apiBase 無法解析，將改用預設來源:', err);
+    apiBaseUrl = null;
+  }
+}
+
+let assetBaseUrl = null;
+if (rawAssetsBase) {
+  try {
+    assetBaseUrl = new URL(rawAssetsBase, window.location.href);
+  } catch (err) {
+    console.warn('指定的 assetsBase 無法解析，將改用預設來源:', err);
+    assetBaseUrl = null;
+  }
+} else if (apiBaseUrl) {
+  assetBaseUrl = apiBaseUrl;
+}
+
+function resolveApiUrl(path) {
+  if (!apiBaseUrl) {
+    return path;
+  }
+
+  try {
+    return new URL(path, apiBaseUrl).toString();
+  } catch (err) {
+    console.warn('組合 API URL 時發生錯誤，將改用原始路徑:', err);
+    return path;
+  }
+}
+
+function resolveAssetUrl(path) {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  if (!assetBaseUrl) {
+    return normalizedPath;
+  }
+
+  try {
+    return new URL(normalizedPath, assetBaseUrl).toString();
+  } catch (err) {
+    console.warn('組合資源 URL 時發生錯誤，將改用原始路徑:', err);
+    return normalizedPath;
+  }
+}
+
 const DEFAULT_SCRIPT = 'trouble_brewing.json';
-const SERVER_CONFIG_ENDPOINT = '/api/overlay-config';
+const SERVER_CONFIG_ENDPOINT = resolveApiUrl('/api/overlay-config');
 
 function togglePanels() {
   isVisible = !isVisible;
@@ -25,7 +78,8 @@ async function loadRolesFromList(roleList) {
     return loadDefaultScript();
   }
 
-  const referenceList = await fetch('/EVERY_SINGLE_ROLE_with_chinese_abilities.json').then(r => r.json());
+  const referenceListUrl = resolveAssetUrl('/EVERY_SINGLE_ROLE_with_chinese_abilities.json');
+  const referenceList = await fetch(referenceListUrl).then(r => r.json());
   const referenceMap = Object.fromEntries(referenceList.map(r => [r.id, r]));
 
   const grids = {
@@ -86,7 +140,8 @@ async function loadRolesFromList(roleList) {
 }
 
 function loadDefaultScript() {
-  return fetch(`/Allscript/${DEFAULT_SCRIPT}`)
+  const defaultScriptUrl = resolveAssetUrl(`/Allscript/${DEFAULT_SCRIPT}`);
+  return fetch(defaultScriptUrl)
     .then(r => r.json())
     .then(loadRolesFromList)
     .catch(err => {
@@ -95,7 +150,8 @@ function loadDefaultScript() {
 }
 
 function loadScriptByName(scriptFileName) {
-  return fetch(`/Allscript/${scriptFileName}`)
+  const scriptUrl = resolveAssetUrl(`/Allscript/${scriptFileName}`);
+  return fetch(scriptUrl)
     .then(r => {
       if (!r.ok) {
         throw new Error(`HTTP ${r.status}`);

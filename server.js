@@ -2,6 +2,32 @@ const express = require('express');
 const app = express();
 const port = process.env.PORT || 8080;
 
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Vary', 'Origin');
+  } else {
+    res.header('Access-Control-Allow-Origin', '*');
+  }
+
+  res.header('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+
+  const requestHeaders = req.headers['access-control-request-headers'];
+  if (requestHeaders) {
+    res.header('Access-Control-Allow-Headers', requestHeaders);
+  } else {
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+  }
+
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(204);
+    return;
+  }
+
+  next();
+});
+
 app.use(express.json());
 app.use(express.static('public'));
 
