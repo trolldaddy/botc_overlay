@@ -2,6 +2,32 @@ const leftPanel = document.getElementById('leftPanel');
 const rightPanel = document.getElementById('rightPanel');
 const toggleButton = document.getElementById('toggleButton');
 const globalTooltip = document.getElementById('globalTooltip');
+const townsfolkTitleEl = document.getElementById('townsfolkTitle');
+const outsiderTitleEl = document.getElementById('outsiderTitle');
+const minionTitleEl = document.getElementById('minionTitle');
+const demonTitleEl = document.getElementById('demonTitle');
+const jinxTitleEl = document.getElementById('jinxTitle');
+const townsfolkGrid = document.getElementById('townsfolkGrid');
+const outsiderGrid = document.getElementById('outsiderGrid');
+const minionGrid = document.getElementById('minionGrid');
+const demonGrid = document.getElementById('demonGrid');
+const jinxGrid = document.getElementById('jinxGrid');
+
+const CATEGORY_DEFAULT_NAMES = {
+  townsfolk: '鎮民',
+  outsider: '外來者',
+  minion: '爪牙',
+  demon: '惡魔',
+  'a jinxed': '相剋規則'
+};
+
+const categoryElements = {
+  townsfolk: { title: townsfolkTitleEl, grid: townsfolkGrid },
+  outsider: { title: outsiderTitleEl, grid: outsiderGrid },
+  minion: { title: minionTitleEl, grid: minionGrid },
+  demon: { title: demonTitleEl, grid: demonGrid },
+  'a jinxed': { title: jinxTitleEl, grid: jinxGrid }
+};
 
 let isVisible = false;
 let lastCookieSignature = null;
@@ -38,6 +64,115 @@ function resolveAssetUrl(path) {
 const DEFAULT_SCRIPT = 'trouble_brewing.json';
 const OVERLAY_CONFIG_COOKIE = 'botc_overlay_config_v1';
 const COOKIE_POLL_INTERVAL = 5000;
+
+let referenceDataPromise = null;
+
+const TEAM_ALIASES = {
+  townsfolk: 'townsfolk',
+  townfolk: 'townsfolk',
+  outsiders: 'outsider',
+  outsider: 'outsider',
+  minions: 'minion',
+  minion: 'minion',
+  demons: 'demon',
+  demon: 'demon',
+  'a jinxed': 'a jinxed',
+  'a_jinxed': 'a jinxed',
+  jinxed: 'a jinxed',
+  jinx: 'a jinxed'
+};
+
+const CHINESE_TEAM_ALIASES = {
+  鎮民: 'townsfolk',
+  镇民: 'townsfolk',
+  外來者: 'outsider',
+  外来者: 'outsider',
+  爪牙: 'minion',
+  惡魔: 'demon',
+  恶魔: 'demon',
+  相剋: 'a jinxed',
+  相克: 'a jinxed'
+};
+
+function normalizeTeam(rawTeam, rawChineseTeam) {
+  if (rawTeam) {
+    const key = String(rawTeam).trim().toLowerCase();
+    if (key in TEAM_ALIASES) {
+      return TEAM_ALIASES[key];
+    }
+  }
+
+  if (rawChineseTeam) {
+    const key = String(rawChineseTeam).trim();
+    if (key in CHINESE_TEAM_ALIASES) {
+      return CHINESE_TEAM_ALIASES[key];
+    }
+  }
+
+  return null;
+}
+
+function normalizeImageUrl(raw) {
+  if (!raw) {
+    return '';
+  }
+
+  if (/^(https?:)?\/\//i.test(raw) || raw.startsWith('data:')) {
+    if (raw.startsWith('//')) {
+      return `${window.location.protocol}${raw}`;
+    }
+    return raw;
+  }
+
+  return resolveAssetUrl(raw);
+}
+
+function getReferenceMap() {
+  if (!referenceDataPromise) {
+    const referenceListUrl = resolveAssetUrl('/EVERY_SINGLE_ROLE_with_chinese_abilities.json');
+    referenceDataPromise = fetch(referenceListUrl)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(list => {
+        const map = new Map();
+        if (Array.isArray(list)) {
+          list.forEach(item => {
+            if (item && item.id) {
+              map.set(item.id, item);
+            }
+          });
+        }
+        return map;
+      })
+      .catch(err => {
+        console.error('載入角色資料參考表失敗:', err);
+        return new Map();
+      });
+  }
+
+  return referenceDataPromise;
+}
+
+function updateCategoryTitles(meta) {
+  const metaNames = meta || {};
+  const titleMap = {
+    townsfolk: metaNames.townsfolkName || metaNames.townsfolk || CATEGORY_DEFAULT_NAMES.townsfolk,
+    outsider: metaNames.outsidersName || metaNames.outsider || CATEGORY_DEFAULT_NAMES.outsider,
+    minion: metaNames.minionsName || metaNames.minion || CATEGORY_DEFAULT_NAMES.minion,
+    demon: metaNames.demonsName || metaNames.demon || CATEGORY_DEFAULT_NAMES.demon,
+    'a jinxed': metaNames['a jinxedName'] || metaNames['a jinxed'] || CATEGORY_DEFAULT_NAMES['a jinxed']
+  };
+
+  Object.entries(categoryElements).forEach(([key, { title }]) => {
+    if (title) {
+      title.textContent = titleMap[key] || CATEGORY_DEFAULT_NAMES[key] || '';
+    }
+  });
+}
 
 function togglePanels() {
   isVisible = !isVisible;
@@ -76,51 +211,71 @@ function loadConfigFromCookie() {
 
 async function loadRolesFromList(roleList) {
   if (!Array.isArray(roleList)) {
-    console.warn('角色資料格式不正確，將改用預設劇本');
-    return loadDefaultScript();
+    throw new Error('角色資料格式不正確');
   }
 
-  const referenceListUrl = resolveAssetUrl('/EVERY_SINGLE_ROLE_with_chinese_abilities.json');
-  const referenceList = await fetch(referenceListUrl).then(r => r.json());
-  const referenceMap = Object.fromEntries(referenceList.map(r => [r.id, r]));
+  let meta = null;
+  const playableRoles = [];
 
-  const grids = {
-    townsfolk: document.getElementById('townsfolkGrid'),
-    outsider: document.getElementById('outsiderGrid'),
-    minion: document.getElementById('minionGrid'),
-    demon: document.getElementById('demonGrid')
-  };
-
-  Object.values(grids).forEach(grid => {
-    grid.innerHTML = '';
-  });
-
-  roleList.forEach(role => {
-    const ref = referenceMap[role.id];
-    if (!ref) {
+  roleList.forEach(entry => {
+    if (!entry || typeof entry !== 'object') {
       return;
     }
 
-    const displayName = ref.name_zh || ref.name || role.id;
-    const imgUrl = ref.image || '';
-    const ability = ref.ability || '';
-    const tooltipDirection = ref.team === 'townsfolk' ? 'right' : 'left';
+    if (entry.id === '_meta') {
+      meta = entry;
+      return;
+    }
+
+    if (entry.id) {
+      playableRoles.push(entry);
+    }
+  });
+
+  updateCategoryTitles(meta);
+
+  const referenceMap = await getReferenceMap();
+
+  Object.values(categoryElements).forEach(({ grid }) => {
+    if (grid) {
+      grid.innerHTML = '';
+    }
+  });
+
+  playableRoles.forEach(role => {
+    const reference = (role.id && referenceMap.get(role.id)) || null;
+    const combined = { ...(reference || {}), ...role };
+    const team = normalizeTeam(
+      combined.team,
+      role.sch_team || combined.sch_team || reference?.sch_team
+    );
+
+    if (!team || !categoryElements[team]) {
+      return;
+    }
+
+    const displayName = combined.name ?? reference?.name_zh ?? reference?.name ?? role.id;
+    const ability = (typeof combined.ability === 'string' && combined.ability.trim())
+      ? combined.ability
+      : (reference?.ability || '');
+    const imageUrl = normalizeImageUrl(combined.image ?? reference?.image ?? '');
+    const tooltipDirection = team === 'townsfolk' ? 'right' : 'left';
 
     const container = document.createElement('div');
     container.className = 'role';
 
     const img = document.createElement('img');
-    img.src = imgUrl;
+    img.src = imageUrl;
     img.alt = displayName;
+    container.appendChild(img);
 
     const label = document.createElement('div');
     label.textContent = displayName;
-
-    container.appendChild(img);
     container.appendChild(label);
 
+    const tooltipText = ability || '（沒有能力資訊）';
     container.addEventListener('mouseenter', () => {
-      globalTooltip.textContent = ability;
+      globalTooltip.textContent = tooltipText;
       globalTooltip.style.display = 'block';
       const rect = container.getBoundingClientRect();
       const offsetX = tooltipDirection === 'left'
@@ -135,39 +290,44 @@ async function loadRolesFromList(roleList) {
       globalTooltip.style.display = 'none';
     });
 
-    if (grids[ref.team]) {
-      grids[ref.team].appendChild(container);
-    }
+    categoryElements[team].grid.appendChild(container);
   });
 }
 
-function loadDefaultScript() {
+async function loadDefaultScript() {
   const defaultScriptUrl = resolveAssetUrl(`/Allscript/${DEFAULT_SCRIPT}`);
-  return fetch(defaultScriptUrl)
-    .then(r => r.json())
-    .then(loadRolesFromList)
-    .catch(err => {
-      console.error('載入預設劇本失敗:', err);
-    });
-}
 
-function loadScriptByName(scriptFileName) {
-  const scriptUrl = resolveAssetUrl(`/Allscript/${scriptFileName}`);
-  return fetch(scriptUrl)
-    .then(r => {
-      if (!r.ok) {
-        throw new Error(`HTTP ${r.status}`);
+  try {
+    const data = await fetch(defaultScriptUrl).then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
       }
-      return r.json();
-    })
-    .then(loadRolesFromList)
-    .catch(err => {
-      console.warn(`載入指定劇本失敗 (${scriptFileName})，改用預設劇本。`, err);
-      return loadDefaultScript();
+      return response.json();
     });
+    await loadRolesFromList(data);
+  } catch (err) {
+    console.error('載入預設劇本失敗:', err);
+  }
 }
 
-function applyConfig(config) {
+async function loadScriptByName(scriptFileName) {
+  const scriptUrl = resolveAssetUrl(`/Allscript/${scriptFileName}`);
+
+  try {
+    const data = await fetch(scriptUrl).then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return response.json();
+    });
+    await loadRolesFromList(data);
+  } catch (err) {
+    console.warn(`載入指定劇本失敗 (${scriptFileName})，改用預設劇本。`, err);
+    await loadDefaultScript();
+  }
+}
+
+async function applyConfig(config) {
   if (!config || typeof config !== 'object') {
     return loadDefaultScript();
   }
@@ -180,7 +340,8 @@ function applyConfig(config) {
 
     try {
       const customList = JSON.parse(config.customJson);
-      return loadRolesFromList(customList);
+      await loadRolesFromList(customList);
+      return;
     } catch (err) {
       console.error('解析自訂劇本失敗，改用預設劇本:', err);
       return loadDefaultScript();

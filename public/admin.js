@@ -86,6 +86,34 @@ function loadOverlayConfigFromCookie() {
   }
 }
 
+function parseAndNormalizeScriptJson(rawJson) {
+  const trimmed = rawJson.trim();
+  if (!trimmed) {
+    throw new Error('自訂劇本內容不可為空');
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(trimmed);
+  } catch (err) {
+    throw new Error('自訂劇本必須是有效的 JSON 格式');
+  }
+
+  if (!Array.isArray(parsed)) {
+    throw new Error('自訂劇本必須是 JSON 陣列');
+  }
+
+  const invalidIndex = parsed.findIndex(item => !item || typeof item !== 'object' || !item.id);
+  if (invalidIndex !== -1) {
+    throw new Error(`第 ${invalidIndex + 1} 筆資料缺少 id 欄位`);
+  }
+
+  return {
+    parsed,
+    normalized: JSON.stringify(parsed, null, 2)
+  };
+}
+
 function loadSavedCustomScripts() {
   try {
     const raw = window.localStorage?.getItem(LOCAL_SCRIPTS_KEY);
@@ -368,19 +396,27 @@ function saveCustomScript() {
     return;
   }
 
-  if (!customJson) {
-    showStatus('❌ 自訂劇本內容不可為空', 'error');
+  let normalizedJson;
+  try {
+    ({ normalized: normalizedJson } = parseAndNormalizeScriptJson(customJson));
+  } catch (err) {
+    showStatus(`❌ ${err.message}`, 'error');
     return;
   }
 
-  savedCustomScripts[name] = customJson;
+  savedCustomScripts[name] = normalizedJson;
   persistSavedCustomScripts();
-  persistCustomJson(customJson);
+  persistCustomJson(normalizedJson);
 
   const optionValue = getLocalOptionValue(name);
   renderScriptOptions(optionValue);
   scriptListEl.value = optionValue;
   handleScriptSelectionChange();
+
+  customJsonEl.dataset.loadedValue = normalizedJson;
+  customJsonEl.dataset.loadedName = name;
+  customNameEl.dataset.loadedName = name;
+  customJsonEl.value = normalizedJson;
 
   showStatus(`✅ 已儲存自訂劇本「${name}」`, 'success');
 }
@@ -441,15 +477,22 @@ saveButton.addEventListener('click', async () => {
       return;
     }
 
-    if (!customJson) {
-      showStatus('❌ 自訂劇本內容不可為空', 'error');
+    let normalizedJson;
+    try {
+      ({ normalized: normalizedJson } = parseAndNormalizeScriptJson(customJson));
+    } catch (err) {
+      showStatus(`❌ ${err.message}`, 'error');
       return;
     }
 
-    persistCustomJson(customJson);
+    persistCustomJson(normalizedJson);
+    customJsonEl.value = normalizedJson;
+    customJsonEl.dataset.loadedValue = normalizedJson;
+    customJsonEl.dataset.loadedName = customName;
+    customNameEl.dataset.loadedName = customName;
     content = {
       selectedScript: CUSTOM_NEW_OPTION,
-      customJson,
+      customJson: normalizedJson,
       customName,
       _timestamp: timestamp
     };
