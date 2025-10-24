@@ -63,6 +63,7 @@ function resolveAssetUrl(path) {
 
 const DEFAULT_SCRIPT = 'trouble_brewing.json';
 const OVERLAY_CONFIG_COOKIE = 'botc_overlay_config_v1';
+const OVERLAY_SCRIPT_COOKIE = 'botc_overlay_script_v1';
 const COOKIE_POLL_INTERVAL = 5000;
 
 let referenceDataPromise = null;
@@ -209,6 +210,11 @@ function loadConfigFromCookie() {
   }
 }
 
+function loadScriptFromCookie() {
+  const raw = getCookie(OVERLAY_SCRIPT_COOKIE);
+  return raw || '';
+}
+
 async function loadRolesFromList(roleList) {
   if (!Array.isArray(roleList)) {
     throw new Error('角色資料格式不正確');
@@ -333,13 +339,17 @@ async function applyConfig(config) {
   }
 
   if (config.selectedScript === '__custom__') {
-    if (!config.customJson) {
+    const scriptSource = typeof config.customJson === 'string' && config.customJson.trim()
+      ? config.customJson
+      : loadScriptFromCookie();
+
+    if (!scriptSource) {
       console.warn('自訂劇本為空，改用預設劇本');
       return loadDefaultScript();
     }
 
     try {
-      const customList = JSON.parse(config.customJson);
+      const customList = JSON.parse(scriptSource);
       await loadRolesFromList(customList);
       return;
     } catch (err) {
@@ -361,7 +371,8 @@ async function applyCookieConfig(force = false) {
   }
 
   const config = loadConfigFromCookie();
-  const signature = JSON.stringify(config || {});
+  const scriptFromCookie = loadScriptFromCookie();
+  const signature = JSON.stringify({ config: config || {}, script: scriptFromCookie });
   if (!force && signature === lastCookieSignature) {
     return;
   }
