@@ -4,6 +4,9 @@ const customJsonEl = document.getElementById('customJson');
 const saveButton = document.getElementById('saveButton');
 const statusMessage = document.getElementById('statusMessage');
 
+const CUSTOM_JSON_COOKIE = 'botc_custom_json';
+const COOKIE_TTL_DAYS = 30;
+
 const STATUS_COLORS = {
   success: 'lightgreen',
   error: '#ff8080',
@@ -15,19 +18,57 @@ function showStatus(message, type = 'success') {
   statusMessage.style.color = STATUS_COLORS[type] || STATUS_COLORS.success;
 }
 
+function setCookie(name, value, days) {
+  const date = new Date();
+  date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
+  const expires = `; expires=${date.toUTCString()}`;
+  document.cookie = `${name}=${encodeURIComponent(value)}${expires}; path=/`;
+}
+
+function getCookie(name) {
+  const match = document.cookie
+    .split(';')
+    .map(part => part.trim())
+    .find(part => part.startsWith(`${name}=`));
+
+  if (!match) {
+    return '';
+  }
+
+  return decodeURIComponent(match.substring(name.length + 1));
+}
+
+function persistCustomJson(value) {
+  setCookie(CUSTOM_JSON_COOKIE, value, COOKIE_TTL_DAYS);
+}
+
+function loadCustomJsonFromCookie() {
+  return getCookie(CUSTOM_JSON_COOKIE);
+}
+
 function toggleCustomJsonVisibility() {
   customJsonBlock.style.display = scriptListEl.value === '__custom__' ? 'block' : 'none';
 }
 
 function updateFormFromConfig(config) {
-  if (!config) {
+  if (config) {
+    const { selectedScript = '', customJson = '' } = config;
+    scriptListEl.value = selectedScript;
+    customJsonEl.value = customJson;
+    toggleCustomJsonVisibility();
+
+    if (selectedScript === '__custom__' && customJson) {
+      persistCustomJson(customJson);
+    }
     return;
   }
 
-  const { selectedScript = '', customJson = '' } = config;
-  scriptListEl.value = selectedScript;
-  customJsonEl.value = customJson;
-  toggleCustomJsonVisibility();
+  const cachedCustomJson = loadCustomJsonFromCookie();
+  if (cachedCustomJson) {
+    scriptListEl.value = '__custom__';
+    customJsonEl.value = cachedCustomJson;
+    toggleCustomJsonVisibility();
+  }
 }
 
 async function saveConfigToServer(content) {
@@ -128,6 +169,19 @@ async function initializeConfigForm() {
 
 scriptListEl.addEventListener('change', () => {
   toggleCustomJsonVisibility();
+
+  if (scriptListEl.value === '__custom__' && !customJsonEl.value) {
+    const cachedCustomJson = loadCustomJsonFromCookie();
+    if (cachedCustomJson) {
+      customJsonEl.value = cachedCustomJson;
+    }
+  }
+});
+
+customJsonEl.addEventListener('input', (event) => {
+  if (scriptListEl.value === '__custom__') {
+    persistCustomJson(event.target.value);
+  }
 });
 
 saveButton.addEventListener('click', async () => {
@@ -142,6 +196,10 @@ saveButton.addEventListener('click', async () => {
   const content = selectedScript === '__custom__'
     ? { selectedScript, customJson, _timestamp: Date.now() }
     : { selectedScript, _timestamp: Date.now() };
+
+  if (selectedScript === '__custom__') {
+    persistCustomJson(customJson);
+  }
 
   saveButton.disabled = true;
   showStatus('💾 儲存中...', 'info');
