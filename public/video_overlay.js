@@ -12,6 +12,8 @@ const outsiderGrid = document.getElementById('outsiderGrid');
 const minionGrid = document.getElementById('minionGrid');
 const demonGrid = document.getElementById('demonGrid');
 const jinxGrid = document.getElementById('jinxGrid');
+const firstNightList = document.getElementById('firstNightList');
+const otherNightList = document.getElementById('otherNightList');
 
 const CATEGORY_DEFAULT_NAMES = {
   townsfolk: '鎮民',
@@ -128,6 +130,114 @@ function normalizeImageUrl(raw) {
   return resolveAssetUrl(raw);
 }
 
+function showTooltipForElement(element, text, direction) {
+  if (!globalTooltip) {
+    return;
+  }
+
+  const tooltipText = text || '（沒有能力資訊）';
+  globalTooltip.textContent = tooltipText;
+  globalTooltip.style.display = 'block';
+
+  const rect = element.getBoundingClientRect();
+  const tooltipWidth = globalTooltip.offsetWidth;
+  const horizontalPadding = 10;
+  const offsetY = rect.top + window.scrollY;
+
+  let offsetX;
+  if (direction === 'left') {
+    offsetX = Math.max(horizontalPadding, rect.left - tooltipWidth - horizontalPadding);
+  } else {
+    offsetX = Math.min(
+      window.innerWidth - tooltipWidth - horizontalPadding,
+      rect.right + horizontalPadding
+    );
+  }
+
+  globalTooltip.style.left = `${offsetX}px`;
+  globalTooltip.style.top = `${offsetY}px`;
+}
+
+function hideTooltip() {
+  if (globalTooltip) {
+    globalTooltip.style.display = 'none';
+  }
+}
+
+function attachTooltip(element, text, direction) {
+  if (!element) {
+    return;
+  }
+
+  const tooltipText = text || '（沒有能力資訊）';
+  element.addEventListener('mouseenter', () => {
+    showTooltipForElement(element, tooltipText, direction);
+  });
+  element.addEventListener('mouseleave', hideTooltip);
+}
+
+function parseActionOrder(raw) {
+  if (raw === null || raw === undefined) {
+    return null;
+  }
+
+  if (typeof raw === 'string' && raw.trim() === '') {
+    return null;
+  }
+
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value === 0) {
+    return null;
+  }
+
+  return value;
+}
+
+function formatActionOrder(raw) {
+  if (raw === null || raw === undefined) {
+    return '';
+  }
+
+  const value = Number(raw);
+  if (!Number.isNaN(value)) {
+    return Number.isInteger(value) ? value.toString() : value.toString();
+  }
+
+  return String(raw).trim();
+}
+
+function renderOrderList(container, entries, tooltipDirection) {
+  if (!container) {
+    return;
+  }
+
+  container.innerHTML = '';
+
+  const sorted = entries
+    .filter(entry => entry && typeof entry.value === 'number')
+    .sort((a, b) => a.value - b.value);
+
+  sorted.forEach(entry => {
+    const item = document.createElement('div');
+    item.className = 'order-item';
+
+    const valueSpan = document.createElement('span');
+    valueSpan.className = 'order-value';
+    valueSpan.textContent = entry.label || entry.value.toString();
+
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'order-name';
+    nameSpan.textContent = entry.name;
+
+    item.appendChild(valueSpan);
+    item.appendChild(nameSpan);
+
+    attachTooltip(item, entry.ability, tooltipDirection);
+
+    container.appendChild(item);
+  });
+}
+
 function getReferenceMap() {
   if (!referenceDataPromise) {
     const referenceListUrl = resolveAssetUrl('/EVERY_SINGLE_ROLE_with_chinese_abilities.json');
@@ -179,6 +289,9 @@ function togglePanels() {
   isVisible = !isVisible;
   leftPanel.classList.toggle('show', isVisible);
   rightPanel.classList.toggle('show', isVisible);
+  if (!isVisible) {
+    hideTooltip();
+  }
 }
 
 toggleButton.addEventListener('click', togglePanels);
@@ -248,6 +361,19 @@ async function loadRolesFromList(roleList) {
     }
   });
 
+  if (firstNightList) {
+    firstNightList.innerHTML = '';
+  }
+
+  if (otherNightList) {
+    otherNightList.innerHTML = '';
+  }
+
+  hideTooltip();
+
+  const firstNightEntries = [];
+  const otherNightEntries = [];
+
   playableRoles.forEach(role => {
     const reference = (role.id && referenceMap.get(role.id)) || null;
     const combined = { ...(reference || {}), ...role };
@@ -280,24 +406,33 @@ async function loadRolesFromList(roleList) {
     container.appendChild(label);
 
     const tooltipText = ability || '（沒有能力資訊）';
-    container.addEventListener('mouseenter', () => {
-      globalTooltip.textContent = tooltipText;
-      globalTooltip.style.display = 'block';
-      const rect = container.getBoundingClientRect();
-      const offsetX = tooltipDirection === 'left'
-        ? Math.max(10, rect.left - globalTooltip.offsetWidth - 10)
-        : Math.min(window.innerWidth - globalTooltip.offsetWidth - 10, rect.right + 10);
-      const offsetY = rect.top + window.scrollY;
-      globalTooltip.style.left = `${offsetX}px`;
-      globalTooltip.style.top = `${offsetY}px`;
-    });
-
-    container.addEventListener('mouseleave', () => {
-      globalTooltip.style.display = 'none';
-    });
+    attachTooltip(container, tooltipText, tooltipDirection);
 
     categoryElements[team].grid.appendChild(container);
+
+    const firstNightValue = parseActionOrder(combined.firstNight);
+    if (firstNightValue !== null) {
+      firstNightEntries.push({
+        value: firstNightValue,
+        label: formatActionOrder(combined.firstNight),
+        name: displayName,
+        ability: tooltipText
+      });
+    }
+
+    const otherNightValue = parseActionOrder(combined.otherNight);
+    if (otherNightValue !== null) {
+      otherNightEntries.push({
+        value: otherNightValue,
+        label: formatActionOrder(combined.otherNight),
+        name: displayName,
+        ability: tooltipText
+      });
+    }
   });
+
+  renderOrderList(firstNightList, firstNightEntries, 'right');
+  renderOrderList(otherNightList, otherNightEntries, 'left');
 }
 
 async function loadDefaultScript() {
