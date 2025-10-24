@@ -95,6 +95,12 @@ function buildApiUrl(path) {
   }
 }
 
+function buildApiUrlNoCache(path) {
+  const url = new URL(buildApiUrl(path), window.location.href);
+  url.searchParams.set('_ts', Date.now().toString());
+  return url.toString();
+}
+
 function buildAssetUrl(path) {
   const base = assetBaseUrl;
   if (!base) {
@@ -315,10 +321,11 @@ function updateFormFromConfig(config) {
 }
 
 async function saveConfigToServer(content) {
-  const response = await fetch(buildApiUrl('/api/overlay-config'), {
+  const response = await fetch(buildApiUrlNoCache('/api/overlay-config'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(content)
+    body: JSON.stringify(content),
+    cache: 'no-store'
   });
 
   if (!response.ok) {
@@ -328,7 +335,9 @@ async function saveConfigToServer(content) {
 
 async function loadConfigFromServer() {
   try {
-    const response = await fetch(buildApiUrl('/api/overlay-config'));
+    const response = await fetch(buildApiUrlNoCache('/api/overlay-config'), {
+      cache: 'no-store'
+    });
     if (!response.ok) {
       throw new Error(`讀取伺服器設定失敗 (HTTP ${response.status})`);
     }

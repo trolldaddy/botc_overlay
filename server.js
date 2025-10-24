@@ -47,10 +47,16 @@ app.get('/api/seating', (req, res) => {
 app.post('/api/overlay-config', (req, res) => {
   overlayConfig = req.body || null;
   console.log('更新 Overlay 設定:', overlayConfig);
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
   res.status(200).json({ status: 'ok' });
 });
 
 app.get('/api/overlay-config', (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
   res.json(overlayConfig || {});
 });
 

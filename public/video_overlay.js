@@ -64,6 +64,12 @@ function resolveAssetUrl(path) {
 const DEFAULT_SCRIPT = 'trouble_brewing.json';
 const SERVER_CONFIG_ENDPOINT = resolveApiUrl('/api/overlay-config');
 
+function withCacheBusting(url) {
+  const baseUrl = typeof url === 'string' ? new URL(url, window.location.href) : new URL(url);
+  baseUrl.searchParams.set('_ts', Date.now().toString());
+  return baseUrl.toString();
+}
+
 function togglePanels() {
   isVisible = !isVisible;
   leftPanel.classList.toggle('show', isVisible);
@@ -203,7 +209,9 @@ function ensureServerPolling() {
 }
 
 async function fetchConfigFromServer() {
-  const response = await fetch(SERVER_CONFIG_ENDPOINT);
+  const response = await fetch(withCacheBusting(SERVER_CONFIG_ENDPOINT), {
+    cache: 'no-store'
+  });
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}`);
   }
