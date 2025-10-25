@@ -92,7 +92,7 @@
     }
 
     Promise.all([
-      fetch('/custom-list.json').then(res => res.json()),
+      fetch('/Allscript/custom-list.json').then(res => res.json()),
       fetch('/EVERY_SINGLE_ROLE_with_image_placeholders.json').then(res => res.json())
     ]).then(([customList, referenceArray]) => {
       customRoles = customList;
