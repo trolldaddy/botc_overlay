@@ -69,7 +69,21 @@ if (rawAssetsBase) {
 }
 
 function resolveAssetUrl(path) {
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  if (!path) {
+    return '';
+  }
+
+  try {
+    const absoluteUrl = new URL(path);
+    if (absoluteUrl.protocol === 'http:' || absoluteUrl.protocol === 'https:') {
+      return path;
+    }
+  } catch (err) {
+    // Ignore parse errors; the path is relative.
+  }
+
+  const normalizedPath = path.replace(/^\/+/, '');
+
   if (!assetBaseUrl) {
     return normalizedPath;
   }
@@ -474,7 +488,7 @@ async function loadRolesFromList(roleList) {
 }
 
 async function loadDefaultScript() {
-  const defaultScriptUrl = resolveAssetUrl(`/Allscript/${DEFAULT_SCRIPT}`);
+  const defaultScriptUrl = resolveAssetUrl(`Allscript/${DEFAULT_SCRIPT}`);
 
   try {
     const data = await fetch(defaultScriptUrl).then(response => {
@@ -490,7 +504,7 @@ async function loadDefaultScript() {
 }
 
 async function loadScriptByName(scriptFileName) {
-  const scriptUrl = resolveAssetUrl(`/Allscript/${scriptFileName}`);
+  const scriptUrl = resolveAssetUrl(`Allscript/${scriptFileName}`);
 
   try {
     const data = await fetch(scriptUrl).then(response => {
@@ -621,6 +635,30 @@ function setupTwitchIntegration() {
   if (twitchExt.configuration?.onChanged) {
     twitchExt.configuration.onChanged(() => {
       safeTrigger();
+    });
+  }
+
+  if (twitchExt.listen) {
+    twitchExt.listen('broadcast', (target, contentType, body) => {
+      if (target !== 'broadcast' || !body) {
+        return;
+      }
+
+      try {
+        const parsed = typeof body === 'string' ? JSON.parse(body) : body;
+        if (!parsed || typeof parsed !== 'object') {
+          return;
+        }
+
+        twitchAuthorized = true;
+        isUsingTwitchConfig = true;
+        lastCookieSignature = JSON.stringify(loadConfigFromCookie() || {});
+        applyConfig(parsed).catch(err => {
+          console.error('套用 Twitch 廣播設定時發生錯誤:', err);
+        });
+      } catch (err) {
+        console.warn('解析 Twitch 廣播設定時發生錯誤:', err);
+      }
     });
   }
 

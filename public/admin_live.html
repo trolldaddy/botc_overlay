@@ -32,7 +32,7 @@
     const saveButton = document.getElementById('saveButton');
     const statusMessage = document.getElementById('statusMessage');
 
-    fetch('/Allscript/scripts.json')
+    fetch('Allscript/scripts.json')
       .then(res => res.json())
       .then(scripts => {
         scriptListEl.innerHTML = `<option value="">-- 請選擇劇本 --</option>` +
@@ -52,7 +52,15 @@
         : { selectedScript, _ts: Date.now() };
 
       if (window.Twitch?.ext?.configuration) {
-        window.Twitch.ext.configuration.set('broadcaster', '1', JSON.stringify(content));
+        const payload = JSON.stringify(content);
+        window.Twitch.ext.configuration.set('broadcaster', '1', payload);
+        if (window.Twitch.ext.send) {
+          try {
+            window.Twitch.ext.send('broadcast', 'application/json', payload);
+          } catch (err) {
+            console.warn('透過 Twitch 廣播更新設定時失敗:', err);
+          }
+        }
         statusMessage.textContent = '✅ 設定已儲存！請切換 Overlay 測試結果';
       } else {
         statusMessage.textContent = '❌ 無法存取 Twitch Extension API';

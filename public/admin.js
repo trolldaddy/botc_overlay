@@ -406,7 +406,7 @@ async function initializeConfigForm() {
   savedCustomScripts = loadSavedCustomScripts();
 
   try {
-    const loadedScripts = await fetch('/Allscript/scripts.json')
+    const loadedScripts = await fetch('Allscript/scripts.json')
       .then(res => {
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}`);
@@ -592,6 +592,13 @@ saveButton.addEventListener('click', async () => {
     if (window.Twitch?.ext?.configuration) {
       const payload = JSON.stringify(twitchConfig || cookieConfig);
       window.Twitch.ext.configuration.set('broadcaster', '1', payload);
+      if (window.Twitch.ext.send) {
+        try {
+          window.Twitch.ext.send('broadcast', 'application/json', payload);
+        } catch (sendErr) {
+          console.warn('透過 Twitch 廣播更新設定時失敗:', sendErr);
+        }
+      }
     }
     showStatus('✅ 設定已儲存並寫入 Cookie！請切換 Overlay 測試結果');
   } catch (err) {
