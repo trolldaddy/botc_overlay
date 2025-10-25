@@ -12,10 +12,8 @@ const LOCAL_OPTION_PREFIX = 'local:';
 const CUSTOM_NEW_OPTION = '__custom__';
 const LOCAL_LAST_CUSTOM_JSON_KEY = 'botc_last_custom_json_v1';
 const LOCAL_LAST_CONFIG_KEY = 'botc_last_overlay_config_v1';
-const MAX_COMPRESSED_CHUNK_SIZE = 4800;
-const COMPRESSION_MODE = 'lzma/xz-base64';
-const COMPRESS_ENDPOINT = 'api/lzma/compress';
-const DECOMPRESS_ENDPOINT = 'api/lzma/decompress';
+const MAX_COMPRESSED_CHUNK_SIZE = window.CompressionHelper?.MAX_CHUNK_SIZE || 4800;
+const COMPRESSION_MODE = window.CompressionHelper?.COMPRESSION_MODE || 'gzip/base64';
 
 const decompressCache = new Map();
 
@@ -125,59 +123,36 @@ async function decompressBase64WithCache(base64) {
     return typeof cached === 'string' ? cached : cached;
   }
 
-  const request = fetch(DECOMPRESS_ENDPOINT, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ data: base64 })
-  })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      return response.json();
-    })
-    .then(body => {
-      if (!body || typeof body.data !== 'string') {
-        throw new Error('回傳的解壓縮資料格式不正確');
-      }
-      return body.data;
-    })
-    .then(result => {
-      decompressCache.set(base64, result);
-      return result;
-    })
-    .catch(err => {
-      decompressCache.delete(base64);
-      throw err;
-    });
+  const request = window.CompressionHelper?.decompressFromBase64
+    ? window.CompressionHelper.decompressFromBase64(base64)
+        .then(result => {
+          decompressCache.set(base64, result);
+          return result;
+        })
+        .catch(err => {
+          decompressCache.delete(base64);
+          throw err;
+        })
+    : Promise.reject(new Error('瀏覽器不支援解壓縮功能'));
 
   decompressCache.set(base64, request);
   return request;
 }
 
 async function compressCustomJson(normalizedJson) {
-  const response = await fetch(COMPRESS_ENDPOINT, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'text/plain; charset=utf-8'
-    },
-    body: normalizedJson
-  });
-
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
+  if (!window.CompressionHelper?.compressToBase64) {
+    return null;
   }
 
-  const body = await response.json();
-  if (!body || typeof body.data !== 'string') {
-    throw new Error('回傳的壓縮資料格式不正確');
+  const result = await window.CompressionHelper.compressToBase64(normalizedJson);
+  if (!result || typeof result.base64 !== 'string') {
+    return null;
   }
 
   return {
-    base64: body.data,
-    originalLength: typeof body.originalLength === 'number' ? body.originalLength : normalizedJson.length
+    base64: result.base64,
+    originalLength: typeof result.originalLength === 'number' ? result.originalLength : normalizedJson.length,
+    compressedLength: typeof result.compressedLength === 'number' ? result.compressedLength : result.base64.length
   };
 }
 
@@ -195,7 +170,6 @@ async function reconstructCustomJsonFromConfig(config) {
       return await decompressBase64WithCache(config.compressedChunks.join(''));
     } catch (err) {
       console.error('解壓縮自訂劇本失敗:', err);
-      throw err;
     }
   }
 
@@ -204,7 +178,6 @@ async function reconstructCustomJsonFromConfig(config) {
       return await decompressBase64WithCache(config.compressedBase64);
     } catch (err) {
       console.error('解壓縮自訂劇本失敗:', err);
-      throw err;
     }
   }
 
@@ -236,6 +209,9 @@ function sanitizeConfigForStorage(config) {
         : (typeof config.compressedBase64 === 'string'
           ? config.compressedBase64.length
           : null)),
+    compressedByteLength: typeof config.compressedByteLength === 'number'
+      ? config.compressedByteLength
+      : null,
     _timestamp: config._timestamp || null
   };
 
@@ -245,6 +221,7 @@ function sanitizeConfigForStorage(config) {
     delete stored.customJsonLength;
     delete stored.compression;
     delete stored.compressedLength;
+    delete stored.compressedByteLength;
   }
 
   return stored;
@@ -693,18 +670,22 @@ saveButton.addEventListener('click', async () => {
     const scriptVersion = timestamp;
     const scriptHash = computeScriptHash(normalizedJson);
 
-    let compressed;
+    saveButton.disabled = true;
+
+    let compressed = null;
+    let compressedChunks = [];
+    let usedCompression = false;
+
     try {
-      saveButton.disabled = true;
       showStatus('🗜️ 正在壓縮自訂劇本...', 'info');
       compressed = await compressCustomJson(normalizedJson);
+      if (compressed && typeof compressed.base64 === 'string' && compressed.base64) {
+        compressedChunks = chunkCompressedText(compressed.base64);
+        usedCompression = compressedChunks.length > 0;
+      }
     } catch (err) {
-      console.error('壓縮自訂劇本失敗:', err);
-      showStatus('❌ 壓縮自訂劇本失敗，請稍後再試', 'error');
-      return;
+      console.warn('壓縮自訂劇本時發生錯誤，將改用未壓縮模式:', err);
     }
-
-    const compressedChunks = chunkCompressedText(compressed.base64);
 
     storageConfig = {
       selectedScript: CUSTOM_NEW_OPTION,
@@ -712,21 +693,41 @@ saveButton.addEventListener('click', async () => {
       _timestamp: timestamp,
       scriptVersion,
       scriptHash,
-      customJsonLength: normalizedJson.length,
-      compression: COMPRESSION_MODE,
-      compressedLength: compressed.base64.length
+      customJsonLength: normalizedJson.length
     };
 
-    if (compressedChunks.length <= 1) {
-      payload = {
-        ...storageConfig,
-        compressedBase64: compressed.base64
-      };
+    if (usedCompression) {
+      storageConfig.compression = COMPRESSION_MODE;
+      storageConfig.compressedByteLength = compressed.compressedLength || compressed.base64.length;
+      storageConfig.compressedLength = compressed.base64.length;
+
+      if (compressedChunks.length <= 1) {
+        payload = {
+          ...storageConfig,
+          compressedBase64: compressed.base64
+        };
+      } else {
+        payload = {
+          ...storageConfig,
+          compressedChunks
+        };
+      }
     } else {
+      const customChunks = chunkCompressedText(normalizedJson);
       payload = {
         ...storageConfig,
-        compressedChunks
+        customJson: customChunks.length <= 1 ? normalizedJson : undefined,
+        customChunks: customChunks.length > 1 ? customChunks : undefined
       };
+
+      if (!payload.customJson) {
+        delete payload.customJson;
+      }
+      if (!payload.customChunks) {
+        delete payload.customChunks;
+      }
+
+      showStatus('⚠️ 無法使用壓縮，已改用分段儲存', 'info');
     }
   }
 

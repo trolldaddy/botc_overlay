@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>BOTC Admin</title>
   <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
+  <script src="compression.js"></script>
   <style>
     body { background: #111; color: white; font-family: "Microsoft JhengHei", sans-serif; padding: 20px; }
     label, select, textarea, button { display: block; margin: 10px 0; width: 100%; }
@@ -32,10 +33,8 @@
     const saveButton = document.getElementById('saveButton');
     const statusMessage = document.getElementById('statusMessage');
 
-    const MAX_COMPRESSED_CHUNK_SIZE = 4800;
-    const COMPRESSION_MODE = 'lzma/xz-base64';
-    const COMPRESS_ENDPOINT = 'api/lzma/compress';
-    const DECOMPRESS_ENDPOINT = 'api/lzma/decompress';
+    const MAX_COMPRESSED_CHUNK_SIZE = window.CompressionHelper?.MAX_CHUNK_SIZE || 4800;
+    const COMPRESSION_MODE = window.CompressionHelper?.COMPRESSION_MODE || 'gzip/base64';
     const decompressCache = new Map();
 
     function computeScriptHash(text) {
@@ -63,26 +62,20 @@
     }
 
     async function compressCustomJson(normalizedJson) {
-      const response = await fetch(COMPRESS_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'text/plain; charset=utf-8'
-        },
-        body: normalizedJson
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+      if (!window.CompressionHelper?.compressToBase64) {
+        return null;
       }
 
-      const body = await response.json();
-      if (!body || typeof body.data !== 'string') {
-        throw new Error('壓縮回傳格式錯誤');
+      const result = await window.CompressionHelper.compressToBase64(normalizedJson);
+      if (!result || typeof result.base64 !== 'string') {
+        return null;
       }
 
       return {
-        base64: body.data,
-        compressedLength: body.data.length
+        base64: result.base64,
+        compressedLength: typeof result.compressedLength === 'number'
+          ? result.compressedLength
+          : result.base64.length
       };
     }
 
@@ -96,31 +89,17 @@
         return typeof cached === 'string' ? cached : cached;
       }
 
-      const request = fetch(DECOMPRESS_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: base64 })
-      })
-        .then(response => {
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-          }
-          return response.json();
-        })
-        .then(body => {
-          if (!body || typeof body.data !== 'string') {
-            throw new Error('解壓縮回傳格式錯誤');
-          }
-          return body.data;
-        })
-        .then(result => {
-          decompressCache.set(base64, result);
-          return result;
-        })
-        .catch(err => {
-          decompressCache.delete(base64);
-          throw err;
-        });
+      const request = window.CompressionHelper?.decompressFromBase64
+        ? window.CompressionHelper.decompressFromBase64(base64)
+            .then(result => {
+              decompressCache.set(base64, result);
+              return result;
+            })
+            .catch(err => {
+              decompressCache.delete(base64);
+              throw err;
+            })
+        : Promise.reject(new Error('瀏覽器不支援解壓縮功能'));
 
       decompressCache.set(base64, request);
       return request;
@@ -221,32 +200,55 @@
           return;
         }
 
-        let compressed;
+        saveButton.disabled = true;
+        statusMessage.textContent = '🗜️ 正在壓縮...';
+
+        let usedCompression = false;
+        let compressed = null;
         try {
-          saveButton.disabled = true;
-          statusMessage.textContent = '🗜️ 正在壓縮...';
           compressed = await compressCustomJson(normalized);
+          if (compressed && typeof compressed.base64 === 'string' && compressed.base64) {
+            const chunks = chunkCompressedText(compressed.base64);
+            if (chunks.length > 0) {
+              const basePayload = {
+                selectedScript,
+                _timestamp: timestamp,
+                scriptVersion: timestamp,
+                scriptHash: computeScriptHash(normalized),
+                customJsonLength: normalized.length,
+                compression: COMPRESSION_MODE,
+                compressedLength: compressed.compressedLength || compressed.base64.length
+              };
+
+              payload = chunks.length <= 1
+                ? { ...basePayload, compressedBase64: compressed.base64 }
+                : { ...basePayload, compressedChunks: chunks };
+
+              usedCompression = true;
+            }
+          }
         } catch (err) {
-          console.error('壓縮自訂劇本失敗:', err);
-          statusMessage.textContent = '❌ 壓縮自訂劇本失敗';
-          saveButton.disabled = false;
-          return;
+          console.warn('壓縮自訂劇本失敗，改用未壓縮模式:', err);
         }
 
-        const chunks = chunkCompressedText(compressed.base64);
-        const basePayload = {
-          selectedScript,
-          _timestamp: timestamp,
-          scriptVersion: timestamp,
-          scriptHash: computeScriptHash(normalized),
-          customJsonLength: normalized.length,
-          compression: COMPRESSION_MODE,
-          compressedLength: compressed.compressedLength
-        };
+        if (!usedCompression) {
+          const basePayload = {
+            selectedScript,
+            _timestamp: timestamp,
+            scriptVersion: timestamp,
+            scriptHash: computeScriptHash(normalized),
+            customJsonLength: normalized.length
+          };
 
-        payload = chunks.length <= 1
-          ? { ...basePayload, compressedBase64: compressed.base64 }
-          : { ...basePayload, compressedChunks: chunks };
+          const customChunks = chunkCompressedText(normalized);
+          if (customChunks.length <= 1) {
+            payload = { ...basePayload, customJson: normalized };
+          } else {
+            payload = { ...basePayload, customChunks };
+          }
+
+          statusMessage.textContent = '⚠️ 無法使用壓縮，改用分段儲存';
+        }
       } else {
         payload = {
           selectedScript,

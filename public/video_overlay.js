@@ -104,33 +104,17 @@ async function decompressBase64WithCache(base64) {
     return typeof cached === 'string' ? cached : cached;
   }
 
-  const request = fetch(DECOMPRESS_ENDPOINT, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ data: base64 })
-  })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      return response.json();
-    })
-    .then(body => {
-      if (!body || typeof body.data !== 'string') {
-        throw new Error('解壓縮回傳格式錯誤');
-      }
-      return body.data;
-    })
-    .then(result => {
-      decompressCache.set(base64, result);
-      return result;
-    })
-    .catch(err => {
-      decompressCache.delete(base64);
-      throw err;
-    });
+  const request = window.CompressionHelper?.decompressFromBase64
+    ? window.CompressionHelper.decompressFromBase64(base64)
+        .then(result => {
+          decompressCache.set(base64, result);
+          return result;
+        })
+        .catch(err => {
+          decompressCache.delete(base64);
+          throw err;
+        })
+    : Promise.reject(new Error('瀏覽器不支援解壓縮功能'));
 
   decompressCache.set(base64, request);
   return request;
@@ -139,8 +123,7 @@ async function decompressBase64WithCache(base64) {
 const DEFAULT_SCRIPT = 'trouble_brewing.json';
 const LOCAL_STORAGE_CONFIG_KEY = 'botc_overlay_last_config_v1';
 const LOCAL_STORAGE_SCRIPT_KEY = 'botc_overlay_last_script_v1';
-const COMPRESSION_MODE = 'lzma/xz-base64';
-const DECOMPRESS_ENDPOINT = 'api/lzma/decompress';
+const COMPRESSION_MODE = window.CompressionHelper?.COMPRESSION_MODE || 'gzip/base64';
 
 const decompressCache = new Map();
 
@@ -394,11 +377,19 @@ async function resolveCustomScript(config, resolvedScript) {
   }
 
   if (typeof config.compressedBase64 === 'string' && config.compressedBase64.trim()) {
-    return decompressBase64WithCache(config.compressedBase64);
+    try {
+      return await decompressBase64WithCache(config.compressedBase64);
+    } catch (err) {
+      console.warn('解壓縮自訂劇本失敗，將嘗試其他來源:', err);
+    }
   }
 
   if (Array.isArray(config.compressedChunks) && config.compressedChunks.length > 0) {
-    return decompressBase64WithCache(config.compressedChunks.join(''));
+    try {
+      return await decompressBase64WithCache(config.compressedChunks.join(''));
+    } catch (err) {
+      console.warn('解壓縮自訂劇本失敗，將嘗試其他來源:', err);
+    }
   }
 
   if (Array.isArray(config.customChunks) && config.customChunks.length > 0) {
@@ -429,8 +420,11 @@ function computeConfigSignature(config, resolvedScript) {
       : (typeof config.compressedBase64 === 'string'
         ? config.compressedBase64.length
         : null));
+  const compressedByteLength = typeof config.compressedByteLength === 'number'
+    ? config.compressedByteLength
+    : null;
 
-  return JSON.stringify({ selectedScript, scriptVersion, scriptHash, customLength, compression, compressedLength });
+  return JSON.stringify({ selectedScript, scriptVersion, scriptHash, customLength, compression, compressedLength, compressedByteLength });
 }
 
 function prepareConfigForStorage(config) {
@@ -454,6 +448,9 @@ function prepareConfigForStorage(config) {
         : (typeof config.compressedBase64 === 'string'
           ? config.compressedBase64.length
           : null)),
+    compressedByteLength: typeof config.compressedByteLength === 'number'
+      ? config.compressedByteLength
+      : null,
     _timestamp: config._timestamp || null
   };
 
@@ -463,6 +460,7 @@ function prepareConfigForStorage(config) {
     delete stored.customJsonLength;
     delete stored.compression;
     delete stored.compressedLength;
+    delete stored.compressedByteLength;
   }
 
   return stored;
