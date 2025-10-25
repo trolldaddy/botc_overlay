@@ -5,7 +5,12 @@
   <title>BOTC Overlay</title>
   <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
   <style>
-    body { margin: 0; background: transparent; font-family: "Microsoft JhengHei", sans-serif; }
+    body {
+      margin: 0;
+      background: transparent;
+      font-family: "Microsoft JhengHei", sans-serif;
+      font-size: 18px;
+    }
     #toggleButton{
       position: fixed; bottom: 7rem;
       background: #000; color: #fff; padding: 10px 20px; border-radius: 5px;
@@ -51,7 +56,7 @@
     .order-title {
       font-weight: bold;
       text-align: center;
-      font-size: 18px;
+      font-size: 20px;
     }
     .order-list {
       display: flex;
@@ -62,7 +67,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      font-size: 14px;
+      font-size: 16px;
     }
     .order-icon {
       width: 48px;
@@ -88,7 +93,7 @@
       justify-content: center;
       border-radius: 8px;
       background: rgba(255, 255, 255, 0.1);
-      font-size: 12px;
+      font-size: 14px;
       text-align: center;
       padding: 4px;
       line-height: 1.2;
@@ -100,8 +105,19 @@
     .role-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
     .role { display: flex; flex-direction: column; align-items: center; position: relative; }
     .role img { width: 95px; height: 95px; display: block; }
-    .role-label { text-align: center; margin-top: 6px; font-weight: 600; }
-    .category-title { margin-top: 10px; border-bottom: 1px solid #fff; padding-bottom: 5px; font-weight: bold; font-size: 20px; }
+    .role-label {
+      text-align: center;
+      margin-top: 6px;
+      font-weight: 600;
+      font-size: 18px;
+    }
+    .category-title {
+      margin-top: 10px;
+      border-bottom: 1px solid #fff;
+      padding-bottom: 5px;
+      font-weight: bold;
+      font-size: 22px;
+    }
     #globalTooltip {
       display: none;
       position: fixed;
