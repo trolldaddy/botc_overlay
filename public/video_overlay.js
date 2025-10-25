@@ -2,6 +2,11 @@ const leftPanel = document.getElementById('leftPanel');
 const rightPanel = document.getElementById('rightPanel');
 const toggleButton = document.getElementById('toggleButton');
 const globalTooltip = document.getElementById('globalTooltip');
+const bodyElement = document.body;
+const layoutMode = bodyElement && bodyElement.dataset
+  ? bodyElement.dataset.overlayLayout || ''
+  : '';
+const isMobileLayout = layoutMode === 'mobile';
 const townsfolkTitleEl = document.getElementById('townsfolkTitle');
 const outsiderTitleEl = document.getElementById('outsiderTitle');
 const minionTitleEl = document.getElementById('minionTitle');
@@ -35,6 +40,19 @@ let isVisible = false;
 let lastCookieSignature = null;
 let cookiePollTimer = null;
 let isUsingTwitchConfig = false;
+
+if (isMobileLayout) {
+  isVisible = true;
+  if (leftPanel) {
+    leftPanel.classList.add('show');
+  }
+  if (rightPanel) {
+    rightPanel.classList.add('show');
+  }
+  if (toggleButton) {
+    toggleButton.style.display = 'none';
+  }
+}
 
 const urlParams = new URLSearchParams(window.location.search);
 const rawAssetsBase = urlParams.get('assetsBase') || '';
@@ -289,14 +307,20 @@ function updateCategoryTitles(meta) {
 
 function togglePanels() {
   isVisible = !isVisible;
-  leftPanel.classList.toggle('show', isVisible);
-  rightPanel.classList.toggle('show', isVisible);
+  if (leftPanel) {
+    leftPanel.classList.toggle('show', isVisible);
+  }
+  if (rightPanel) {
+    rightPanel.classList.toggle('show', isVisible);
+  }
   if (!isVisible) {
     hideTooltip();
   }
 }
 
-toggleButton.addEventListener('click', togglePanels);
+if (toggleButton && !isMobileLayout) {
+  toggleButton.addEventListener('click', togglePanels);
+}
 
 function getCookie(name) {
   const match = document.cookie
@@ -412,6 +436,7 @@ async function loadRolesFromList(roleList) {
     container.appendChild(img);
 
     const label = document.createElement('div');
+    label.className = 'role-label';
     label.textContent = displayName;
     container.appendChild(label);
 
