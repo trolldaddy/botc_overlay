@@ -40,6 +40,7 @@ let isVisible = false;
 let lastCookieSignature = null;
 let cookiePollTimer = null;
 let isUsingTwitchConfig = false;
+let twitchAuthorized = false;
 
 if (isMobileLayout) {
   isVisible = true;
@@ -602,14 +603,27 @@ function setupTwitchIntegration() {
     return false;
   }
 
-  const trigger = () => {
+  const safeTrigger = () => {
+    if (!twitchAuthorized) {
+      return;
+    }
+
     handleTwitchConfigChange().catch(err => {
       console.error('處理 Twitch 設定時發生錯誤:', err);
     });
   };
 
-  twitchExt.onAuthorized(trigger);
-  twitchExt.configuration?.onChanged?.(trigger);
+  twitchExt.onAuthorized(() => {
+    twitchAuthorized = true;
+    safeTrigger();
+  });
+
+  if (twitchExt.configuration?.onChanged) {
+    twitchExt.configuration.onChanged(() => {
+      safeTrigger();
+    });
+  }
+
   return true;
 }
 
@@ -617,11 +631,21 @@ async function init() {
   ensureCookiePolling();
   const hasTwitch = setupTwitchIntegration();
 
-  if (hasTwitch) {
-    await handleTwitchConfigChange();
-  } else {
-    await applyCookieConfig(true);
+  await applyCookieConfig(true);
+
+  if (!hasTwitch) {
+    return;
   }
+
+  // 如果在合理時間內沒有取得授權，繼續沿用 Cookie 或預設設定
+  setTimeout(() => {
+    if (!twitchAuthorized) {
+      console.warn('未從 Twitch 取得授權回應，改用 Cookie 設定。');
+      applyCookieConfig(true).catch(err => {
+        console.warn('回退到 Cookie 設定時發生錯誤:', err);
+      });
+    }
+  }, 5000);
 }
 
 init();
