@@ -94,9 +94,55 @@ function resolveAssetUrl(path) {
   }
 }
 
+async function decompressBase64WithCache(base64) {
+  if (typeof base64 !== 'string' || !base64) {
+    return '';
+  }
+
+  if (decompressCache.has(base64)) {
+    const cached = decompressCache.get(base64);
+    return typeof cached === 'string' ? cached : cached;
+  }
+
+  const request = fetch(DECOMPRESS_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ data: base64 })
+  })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(body => {
+      if (!body || typeof body.data !== 'string') {
+        throw new Error('解壓縮回傳格式錯誤');
+      }
+      return body.data;
+    })
+    .then(result => {
+      decompressCache.set(base64, result);
+      return result;
+    })
+    .catch(err => {
+      decompressCache.delete(base64);
+      throw err;
+    });
+
+  decompressCache.set(base64, request);
+  return request;
+}
+
 const DEFAULT_SCRIPT = 'trouble_brewing.json';
 const LOCAL_STORAGE_CONFIG_KEY = 'botc_overlay_last_config_v1';
 const LOCAL_STORAGE_SCRIPT_KEY = 'botc_overlay_last_script_v1';
+const COMPRESSION_MODE = 'lzma/xz-base64';
+const DECOMPRESS_ENDPOINT = 'api/lzma/decompress';
+
+const decompressCache = new Map();
 
 let referenceDataPromise = null;
 
@@ -334,7 +380,7 @@ if (toggleButton && !isMobileLayout) {
   toggleButton.addEventListener('click', togglePanels);
 }
 
-function extractCustomScript(config, resolvedScript) {
+async function resolveCustomScript(config, resolvedScript) {
   if (typeof resolvedScript === 'string' && resolvedScript) {
     return resolvedScript;
   }
@@ -345,6 +391,14 @@ function extractCustomScript(config, resolvedScript) {
 
   if (typeof config.customJson === 'string' && config.customJson.trim()) {
     return config.customJson;
+  }
+
+  if (typeof config.compressedBase64 === 'string' && config.compressedBase64.trim()) {
+    return decompressBase64WithCache(config.compressedBase64);
+  }
+
+  if (Array.isArray(config.compressedChunks) && config.compressedChunks.length > 0) {
+    return decompressBase64WithCache(config.compressedChunks.join(''));
   }
 
   if (Array.isArray(config.customChunks) && config.customChunks.length > 0) {
@@ -367,8 +421,16 @@ function computeConfigSignature(config, resolvedScript) {
     : (typeof config.customJson === 'string'
       ? config.customJson.length
       : (resolvedScript ? resolvedScript.length : null));
+  const compression = config.compression || null;
+  const compressedLength = typeof config.compressedLength === 'number'
+    ? config.compressedLength
+    : (Array.isArray(config.compressedChunks)
+      ? config.compressedChunks.join('').length
+      : (typeof config.compressedBase64 === 'string'
+        ? config.compressedBase64.length
+        : null));
 
-  return JSON.stringify({ selectedScript, scriptVersion, scriptHash, customLength });
+  return JSON.stringify({ selectedScript, scriptVersion, scriptHash, customLength, compression, compressedLength });
 }
 
 function prepareConfigForStorage(config) {
@@ -384,6 +446,14 @@ function prepareConfigForStorage(config) {
     customJsonLength: typeof config.customJsonLength === 'number'
       ? config.customJsonLength
       : (typeof config.customJson === 'string' ? config.customJson.length : null),
+    compression: config.compression || null,
+    compressedLength: typeof config.compressedLength === 'number'
+      ? config.compressedLength
+      : (Array.isArray(config.compressedChunks)
+        ? config.compressedChunks.join('').length
+        : (typeof config.compressedBase64 === 'string'
+          ? config.compressedBase64.length
+          : null)),
     _timestamp: config._timestamp || null
   };
 
@@ -391,6 +461,8 @@ function prepareConfigForStorage(config) {
     delete stored.customName;
     delete stored.scriptHash;
     delete stored.customJsonLength;
+    delete stored.compression;
+    delete stored.compressedLength;
   }
 
   return stored;
@@ -605,7 +677,18 @@ async function applyConfig(config, options = {}) {
   }
 
   if (config.selectedScript === '__custom__') {
-    const scriptSource = extractCustomScript(config, resolvedScript);
+    let scriptSource = '';
+    try {
+      scriptSource = await resolveCustomScript(config, resolvedScript);
+    } catch (err) {
+      console.error('解壓縮自訂劇本失敗，改用預設劇本:', err);
+      if (allowDefault) {
+        await loadDefaultScript();
+        lastAppliedSignature = 'default';
+        return { applied: true, scriptSource: null };
+      }
+      return { applied: false, scriptSource: null };
+    }
 
     if (!scriptSource) {
       console.warn('自訂劇本為空，改用預設劇本');

@@ -12,7 +12,12 @@ const LOCAL_OPTION_PREFIX = 'local:';
 const CUSTOM_NEW_OPTION = '__custom__';
 const LOCAL_LAST_CUSTOM_JSON_KEY = 'botc_last_custom_json_v1';
 const LOCAL_LAST_CONFIG_KEY = 'botc_last_overlay_config_v1';
-const MAX_SCRIPT_CHUNK_SIZE = 3800;
+const MAX_COMPRESSED_CHUNK_SIZE = 4800;
+const COMPRESSION_MODE = 'lzma/xz-base64';
+const COMPRESS_ENDPOINT = 'api/lzma/compress';
+const DECOMPRESS_ENDPOINT = 'api/lzma/decompress';
+
+const decompressCache = new Map();
 
 let builtinScripts = [];
 let savedCustomScripts = {};
@@ -97,26 +102,110 @@ function computeScriptHash(text) {
   return hash.toString(16);
 }
 
-function chunkScriptContent(text) {
+function chunkCompressedText(text) {
   if (typeof text !== 'string' || !text) {
     return [];
   }
 
   const chunks = [];
-  for (let index = 0; index < text.length; index += MAX_SCRIPT_CHUNK_SIZE) {
-    chunks.push(text.slice(index, index + MAX_SCRIPT_CHUNK_SIZE));
+  for (let index = 0; index < text.length; index += MAX_COMPRESSED_CHUNK_SIZE) {
+    chunks.push(text.slice(index, index + MAX_COMPRESSED_CHUNK_SIZE));
   }
 
   return chunks;
 }
 
-function reconstructCustomJsonFromConfig(config) {
+async function decompressBase64WithCache(base64) {
+  if (typeof base64 !== 'string' || !base64) {
+    return '';
+  }
+
+  if (decompressCache.has(base64)) {
+    const cached = decompressCache.get(base64);
+    return typeof cached === 'string' ? cached : cached;
+  }
+
+  const request = fetch(DECOMPRESS_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ data: base64 })
+  })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(body => {
+      if (!body || typeof body.data !== 'string') {
+        throw new Error('回傳的解壓縮資料格式不正確');
+      }
+      return body.data;
+    })
+    .then(result => {
+      decompressCache.set(base64, result);
+      return result;
+    })
+    .catch(err => {
+      decompressCache.delete(base64);
+      throw err;
+    });
+
+  decompressCache.set(base64, request);
+  return request;
+}
+
+async function compressCustomJson(normalizedJson) {
+  const response = await fetch(COMPRESS_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'text/plain; charset=utf-8'
+    },
+    body: normalizedJson
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  const body = await response.json();
+  if (!body || typeof body.data !== 'string') {
+    throw new Error('回傳的壓縮資料格式不正確');
+  }
+
+  return {
+    base64: body.data,
+    originalLength: typeof body.originalLength === 'number' ? body.originalLength : normalizedJson.length
+  };
+}
+
+async function reconstructCustomJsonFromConfig(config) {
   if (!config || typeof config !== 'object') {
     return '';
   }
 
   if (typeof config.customJson === 'string' && config.customJson.trim()) {
     return config.customJson;
+  }
+
+  if (Array.isArray(config.compressedChunks) && config.compressedChunks.length > 0) {
+    try {
+      return await decompressBase64WithCache(config.compressedChunks.join(''));
+    } catch (err) {
+      console.error('解壓縮自訂劇本失敗:', err);
+      throw err;
+    }
+  }
+
+  if (typeof config.compressedBase64 === 'string' && config.compressedBase64.trim()) {
+    try {
+      return await decompressBase64WithCache(config.compressedBase64);
+    } catch (err) {
+      console.error('解壓縮自訂劇本失敗:', err);
+      throw err;
+    }
   }
 
   if (Array.isArray(config.customChunks) && config.customChunks.length > 0) {
@@ -139,6 +228,14 @@ function sanitizeConfigForStorage(config) {
     customJsonLength: typeof config.customJsonLength === 'number'
       ? config.customJsonLength
       : (typeof config.customJson === 'string' ? config.customJson.length : null),
+    compression: config.compression || null,
+    compressedLength: typeof config.compressedLength === 'number'
+      ? config.compressedLength
+      : (Array.isArray(config.compressedChunks)
+        ? config.compressedChunks.join('').length
+        : (typeof config.compressedBase64 === 'string'
+          ? config.compressedBase64.length
+          : null)),
     _timestamp: config._timestamp || null
   };
 
@@ -146,6 +243,8 @@ function sanitizeConfigForStorage(config) {
     delete stored.customName;
     delete stored.scriptHash;
     delete stored.customJsonLength;
+    delete stored.compression;
+    delete stored.compressedLength;
   }
 
   return stored;
@@ -312,7 +411,7 @@ function handleScriptSelectionChange() {
   clearLoadedCustomMetadata();
 }
 
-function updateFormFromConfig(config) {
+async function updateFormFromConfig(config) {
   if (config && typeof config === 'object' && Object.keys(config).length > 0) {
     const sanitized = sanitizeConfigForStorage(config);
     if (sanitized) {
@@ -335,7 +434,18 @@ function updateFormFromConfig(config) {
     scriptListEl.value = CUSTOM_NEW_OPTION;
     customNameEl.value = customName || '';
 
-    const effectiveJson = reconstructCustomJsonFromConfig(config) || loadLastCustomJson();
+    let effectiveJson = '';
+    try {
+      effectiveJson = await reconstructCustomJsonFromConfig(config);
+    } catch (err) {
+      console.warn('解壓縮自訂劇本失敗，改用本機快取:', err);
+      effectiveJson = loadLastCustomJson();
+    }
+
+    if (!effectiveJson) {
+      effectiveJson = loadLastCustomJson();
+    }
+
     if (effectiveJson) {
       customJsonEl.value = effectiveJson;
       persistLastCustomJson(effectiveJson);
@@ -353,7 +463,7 @@ function updateFormFromConfig(config) {
 
   const fallbackConfig = loadLastConfig();
   if (fallbackConfig) {
-    updateFormFromConfig(fallbackConfig);
+    await updateFormFromConfig(fallbackConfig);
     return;
   }
 
@@ -385,24 +495,30 @@ function setupTwitchListeners() {
     return false;
   }
 
-  const applyCurrentConfig = () => {
+  const applyCurrentConfig = async () => {
     const config = readConfigFromTwitch();
     if (config) {
-      updateFormFromConfig(config);
+      await updateFormFromConfig(config);
     } else {
-      updateFormFromConfig(loadLastConfig());
+      await updateFormFromConfig(loadLastConfig());
     }
   };
 
   twitchExt.onAuthorized(() => {
-    applyCurrentConfig();
+    applyCurrentConfig().catch(err => {
+      console.error('套用 Twitch 授權設定時發生錯誤:', err);
+    });
   });
 
   twitchExt.configuration?.onChanged?.(() => {
-    applyCurrentConfig();
+    applyCurrentConfig().catch(err => {
+      console.error('套用 Twitch 設定變更時發生錯誤:', err);
+    });
   });
 
-  applyCurrentConfig();
+  applyCurrentConfig().catch(err => {
+    console.error('初始化 Twitch 設定時發生錯誤:', err);
+  });
   return true;
 }
 
@@ -429,7 +545,7 @@ async function initializeConfigForm() {
   handleScriptSelectionChange();
 
   if (!setupTwitchListeners()) {
-    updateFormFromConfig(loadLastConfig());
+    await updateFormFromConfig(loadLastConfig());
   }
 }
 
@@ -576,25 +692,40 @@ saveButton.addEventListener('click', async () => {
 
     const scriptVersion = timestamp;
     const scriptHash = computeScriptHash(normalizedJson);
-    const customChunks = chunkScriptContent(normalizedJson);
+
+    let compressed;
+    try {
+      saveButton.disabled = true;
+      showStatus('🗜️ 正在壓縮自訂劇本...', 'info');
+      compressed = await compressCustomJson(normalizedJson);
+    } catch (err) {
+      console.error('壓縮自訂劇本失敗:', err);
+      showStatus('❌ 壓縮自訂劇本失敗，請稍後再試', 'error');
+      return;
+    }
+
+    const compressedChunks = chunkCompressedText(compressed.base64);
+
     storageConfig = {
       selectedScript: CUSTOM_NEW_OPTION,
       customName,
       _timestamp: timestamp,
       scriptVersion,
       scriptHash,
-      customJsonLength: normalizedJson.length
+      customJsonLength: normalizedJson.length,
+      compression: COMPRESSION_MODE,
+      compressedLength: compressed.base64.length
     };
 
-    if (customChunks.length <= 1) {
+    if (compressedChunks.length <= 1) {
       payload = {
         ...storageConfig,
-        customJson: normalizedJson
+        compressedBase64: compressed.base64
       };
     } else {
       payload = {
         ...storageConfig,
-        customChunks
+        compressedChunks
       };
     }
   }

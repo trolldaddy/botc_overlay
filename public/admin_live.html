@@ -31,7 +31,12 @@
     const customJsonEl = document.getElementById('customJson');
     const saveButton = document.getElementById('saveButton');
     const statusMessage = document.getElementById('statusMessage');
-    const MAX_SCRIPT_CHUNK_SIZE = 3800;
+
+    const MAX_COMPRESSED_CHUNK_SIZE = 4800;
+    const COMPRESSION_MODE = 'lzma/xz-base64';
+    const COMPRESS_ENDPOINT = 'api/lzma/compress';
+    const DECOMPRESS_ENDPOINT = 'api/lzma/decompress';
+    const decompressCache = new Map();
 
     function computeScriptHash(text) {
       if (!text) {
@@ -45,25 +50,97 @@
       return hash.toString(16);
     }
 
-    function chunkScriptContent(text) {
+    function chunkCompressedText(text) {
       if (!text) {
         return [];
       }
 
       const chunks = [];
-      for (let index = 0; index < text.length; index += MAX_SCRIPT_CHUNK_SIZE) {
-        chunks.push(text.slice(index, index + MAX_SCRIPT_CHUNK_SIZE));
+      for (let index = 0; index < text.length; index += MAX_COMPRESSED_CHUNK_SIZE) {
+        chunks.push(text.slice(index, index + MAX_COMPRESSED_CHUNK_SIZE));
       }
       return chunks;
     }
 
-    function reconstructCustomJson(config) {
+    async function compressCustomJson(normalizedJson) {
+      const response = await fetch(COMPRESS_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8'
+        },
+        body: normalizedJson
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const body = await response.json();
+      if (!body || typeof body.data !== 'string') {
+        throw new Error('壓縮回傳格式錯誤');
+      }
+
+      return {
+        base64: body.data,
+        compressedLength: body.data.length
+      };
+    }
+
+    async function decompressBase64(base64) {
+      if (!base64) {
+        return '';
+      }
+
+      if (decompressCache.has(base64)) {
+        const cached = decompressCache.get(base64);
+        return typeof cached === 'string' ? cached : cached;
+      }
+
+      const request = fetch(DECOMPRESS_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: base64 })
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(body => {
+          if (!body || typeof body.data !== 'string') {
+            throw new Error('解壓縮回傳格式錯誤');
+          }
+          return body.data;
+        })
+        .then(result => {
+          decompressCache.set(base64, result);
+          return result;
+        })
+        .catch(err => {
+          decompressCache.delete(base64);
+          throw err;
+        });
+
+      decompressCache.set(base64, request);
+      return request;
+    }
+
+    async function reconstructCustomJson(config) {
       if (!config || typeof config !== 'object') {
         return '';
       }
 
       if (typeof config.customJson === 'string' && config.customJson.trim()) {
         return config.customJson;
+      }
+
+      if (typeof config.compressedBase64 === 'string' && config.compressedBase64.trim()) {
+        return decompressBase64(config.compressedBase64);
+      }
+
+      if (Array.isArray(config.compressedChunks) && config.compressedChunks.length > 0) {
+        return decompressBase64(config.compressedChunks.join(''));
       }
 
       if (Array.isArray(config.customChunks) && config.customChunks.length > 0) {
@@ -73,23 +150,56 @@
       return '';
     }
 
+    async function applyConfig(config) {
+      if (!config || typeof config !== 'object') {
+        scriptListEl.value = '';
+        customJsonEl.value = '';
+        customJsonBlock.style.display = 'none';
+        return;
+      }
+
+      scriptListEl.value = config.selectedScript || '';
+      customJsonBlock.style.display = scriptListEl.value === '__custom__' ? 'block' : 'none';
+
+      if (config.selectedScript === '__custom__') {
+        try {
+          const json = await reconstructCustomJson(config);
+          customJsonEl.value = json || '';
+        } catch (err) {
+          console.warn('解壓縮自訂劇本失敗:', err);
+          customJsonEl.value = '';
+          statusMessage.textContent = '⚠️ 解壓縮自訂劇本失敗';
+        }
+      } else {
+        customJsonEl.value = '';
+      }
+    }
+
     fetch('Allscript/scripts.json')
       .then(res => res.json())
       .then(scripts => {
         scriptListEl.innerHTML = `<option value="">-- 請選擇劇本 --</option>` +
           scripts.map(f => `<option value="${f}">${f}</option>`).join('') +
           `<option value="__custom__">自訂劇本</option>`;
+      })
+      .catch(() => {
+        statusMessage.textContent = '❌ 無法載入劇本清單';
       });
 
     scriptListEl.addEventListener('change', () => {
       customJsonBlock.style.display = scriptListEl.value === '__custom__' ? 'block' : 'none';
     });
 
-    saveButton.addEventListener('click', () => {
+    saveButton.addEventListener('click', async () => {
       const selectedScript = scriptListEl.value;
 
       if (!selectedScript) {
         statusMessage.textContent = '❌ 請先選擇劇本';
+        return;
+      }
+
+      if (!window.Twitch?.ext?.configuration) {
+        statusMessage.textContent = '❌ 無法存取 Twitch Extension API';
         return;
       }
 
@@ -111,18 +221,32 @@
           return;
         }
 
-        const chunks = chunkScriptContent(normalized);
+        let compressed;
+        try {
+          saveButton.disabled = true;
+          statusMessage.textContent = '🗜️ 正在壓縮...';
+          compressed = await compressCustomJson(normalized);
+        } catch (err) {
+          console.error('壓縮自訂劇本失敗:', err);
+          statusMessage.textContent = '❌ 壓縮自訂劇本失敗';
+          saveButton.disabled = false;
+          return;
+        }
+
+        const chunks = chunkCompressedText(compressed.base64);
         const basePayload = {
           selectedScript,
           _timestamp: timestamp,
           scriptVersion: timestamp,
           scriptHash: computeScriptHash(normalized),
-          customJsonLength: normalized.length
+          customJsonLength: normalized.length,
+          compression: COMPRESSION_MODE,
+          compressedLength: compressed.compressedLength
         };
 
         payload = chunks.length <= 1
-          ? { ...basePayload, customJson: normalized }
-          : { ...basePayload, customChunks: chunks };
+          ? { ...basePayload, compressedBase64: compressed.base64 }
+          : { ...basePayload, compressedChunks: chunks };
       } else {
         payload = {
           selectedScript,
@@ -131,32 +255,36 @@
         };
       }
 
-      if (!window.Twitch?.ext?.configuration) {
-        statusMessage.textContent = '❌ 無法存取 Twitch Extension API';
-        return;
-      }
+      statusMessage.textContent = '💾 儲存中...';
 
       const payloadString = JSON.stringify(payload);
-      window.Twitch.ext.configuration.set('broadcaster', '1', payloadString);
-      if (window.Twitch.ext.send) {
-        try {
-          window.Twitch.ext.send('broadcast', 'application/json', payloadString);
-        } catch (err) {
-          console.warn('透過 Twitch 廣播更新設定時失敗:', err);
+      try {
+        window.Twitch.ext.configuration.set('broadcaster', '1', payloadString);
+        if (window.Twitch.ext.send) {
+          try {
+            window.Twitch.ext.send('broadcast', 'application/json', payloadString);
+          } catch (err) {
+            console.warn('透過 Twitch 廣播更新設定時發生錯誤:', err);
+          }
         }
+        statusMessage.textContent = '✅ 設定已儲存！請切換 Overlay 測試結果';
+      } catch (err) {
+        console.error('儲存 Twitch 設定失敗:', err);
+        statusMessage.textContent = '❌ 儲存設定失敗';
+      } finally {
+        saveButton.disabled = false;
       }
-      statusMessage.textContent = '✅ 設定已儲存！請切換 Overlay 測試結果';
     });
 
     if (window.Twitch?.ext) {
-      window.Twitch.ext.configuration.onChanged(() => {
+      window.Twitch.ext.configuration.onChanged(async () => {
         const configStr = window.Twitch.ext.configuration.broadcaster?.content;
         try {
           const config = JSON.parse(configStr || '{}');
-          scriptListEl.value = config.selectedScript || '';
-          customJsonEl.value = reconstructCustomJson(config);
-          customJsonBlock.style.display = config.selectedScript === '__custom__' ? 'block' : 'none';
-        } catch {}
+          await applyConfig(config);
+        } catch (err) {
+          console.warn('解析 Twitch 設定失敗:', err);
+        }
       });
     }
   </script>
