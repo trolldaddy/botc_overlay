@@ -37,10 +37,8 @@ const categoryElements = {
 };
 
 let isVisible = false;
-let lastCookieSignature = null;
-let cookiePollTimer = null;
-let isUsingTwitchConfig = false;
 let twitchAuthorized = false;
+let lastAppliedSignature = null;
 
 if (isMobileLayout) {
   isVisible = true;
@@ -97,9 +95,8 @@ function resolveAssetUrl(path) {
 }
 
 const DEFAULT_SCRIPT = 'trouble_brewing.json';
-const OVERLAY_CONFIG_COOKIE = 'botc_overlay_config_v1';
-const OVERLAY_SCRIPT_COOKIE = 'botc_overlay_script_v1';
-const COOKIE_POLL_INTERVAL = 5000;
+const LOCAL_STORAGE_CONFIG_KEY = 'botc_overlay_last_config_v1';
+const LOCAL_STORAGE_SCRIPT_KEY = 'botc_overlay_last_script_v1';
 
 let referenceDataPromise = null;
 
@@ -337,36 +334,105 @@ if (toggleButton && !isMobileLayout) {
   toggleButton.addEventListener('click', togglePanels);
 }
 
-function getCookie(name) {
-  const match = document.cookie
-    .split(';')
-    .map(part => part.trim())
-    .find(part => part.startsWith(`${name}=`));
+function extractCustomScript(config, resolvedScript) {
+  if (typeof resolvedScript === 'string' && resolvedScript) {
+    return resolvedScript;
+  }
 
-  if (!match) {
+  if (!config || typeof config !== 'object') {
     return '';
   }
 
-  return decodeURIComponent(match.substring(name.length + 1));
+  if (typeof config.customJson === 'string' && config.customJson.trim()) {
+    return config.customJson;
+  }
+
+  if (Array.isArray(config.customChunks) && config.customChunks.length > 0) {
+    return config.customChunks.join('');
+  }
+
+  return '';
 }
 
-function loadConfigFromCookie() {
-  const raw = getCookie(OVERLAY_CONFIG_COOKIE);
-  if (!raw) {
+function computeConfigSignature(config, resolvedScript) {
+  if (!config || typeof config !== 'object') {
+    return 'default';
+  }
+
+  const selectedScript = config.selectedScript || null;
+  const scriptVersion = config.scriptVersion || config._timestamp || null;
+  const scriptHash = config.scriptHash || null;
+  const customLength = typeof config.customJsonLength === 'number'
+    ? config.customJsonLength
+    : (typeof config.customJson === 'string'
+      ? config.customJson.length
+      : (resolvedScript ? resolvedScript.length : null));
+
+  return JSON.stringify({ selectedScript, scriptVersion, scriptHash, customLength });
+}
+
+function prepareConfigForStorage(config) {
+  if (!config || typeof config !== 'object') {
     return null;
   }
 
+  const stored = {
+    selectedScript: config.selectedScript || '',
+    customName: config.customName || '',
+    scriptVersion: config.scriptVersion || config._timestamp || null,
+    scriptHash: config.scriptHash || null,
+    customJsonLength: typeof config.customJsonLength === 'number'
+      ? config.customJsonLength
+      : (typeof config.customJson === 'string' ? config.customJson.length : null),
+    _timestamp: config._timestamp || null
+  };
+
+  if (stored.selectedScript !== '__custom__') {
+    delete stored.customName;
+    delete stored.scriptHash;
+    delete stored.customJsonLength;
+  }
+
+  return stored;
+}
+
+function loadStoredViewerState() {
   try {
-    return JSON.parse(raw);
+    const configStr = window.localStorage?.getItem(LOCAL_STORAGE_CONFIG_KEY);
+    if (!configStr) {
+      return null;
+    }
+
+    const config = JSON.parse(configStr);
+    const scriptSource = window.localStorage?.getItem(LOCAL_STORAGE_SCRIPT_KEY) || null;
+    return { config, scriptSource };
   } catch (err) {
-    console.warn('解析 Overlay 設定 Cookie 失敗:', err);
+    console.warn('載入最近的覆蓋設定時發生錯誤:', err);
     return null;
   }
 }
 
-function loadScriptFromCookie() {
-  const raw = getCookie(OVERLAY_SCRIPT_COOKIE);
-  return raw || '';
+function persistViewerState(config, scriptSource) {
+  try {
+    if (!config) {
+      window.localStorage?.removeItem(LOCAL_STORAGE_CONFIG_KEY);
+      window.localStorage?.removeItem(LOCAL_STORAGE_SCRIPT_KEY);
+      return;
+    }
+
+    const storedConfig = prepareConfigForStorage(config);
+    if (storedConfig) {
+      window.localStorage?.setItem(LOCAL_STORAGE_CONFIG_KEY, JSON.stringify(storedConfig));
+    }
+
+    if (typeof scriptSource === 'string' && scriptSource.trim()) {
+      window.localStorage?.setItem(LOCAL_STORAGE_SCRIPT_KEY, scriptSource);
+    } else {
+      window.localStorage?.removeItem(LOCAL_STORAGE_SCRIPT_KEY);
+    }
+  } catch (err) {
+    console.warn('儲存最近覆蓋設定至本機時發生錯誤:', err);
+  }
 }
 
 async function loadRolesFromList(roleList) {
@@ -520,94 +586,113 @@ async function loadScriptByName(scriptFileName) {
   }
 }
 
-async function applyConfig(config) {
+async function applyConfig(config, options = {}) {
+  const { force = false, resolvedScript = null, allowDefault = true } = options;
+
+  const signature = computeConfigSignature(config, resolvedScript);
+  if (!force && signature === lastAppliedSignature) {
+    return { applied: false, scriptSource: null };
+  }
+
   if (!config || typeof config !== 'object') {
-    return loadDefaultScript();
+    if (!allowDefault) {
+      return { applied: false, scriptSource: null };
+    }
+
+    await loadDefaultScript();
+    lastAppliedSignature = 'default';
+    return { applied: true, scriptSource: null };
   }
 
   if (config.selectedScript === '__custom__') {
-    const scriptSource = typeof config.customJson === 'string' && config.customJson.trim()
-      ? config.customJson
-      : loadScriptFromCookie();
+    const scriptSource = extractCustomScript(config, resolvedScript);
 
     if (!scriptSource) {
       console.warn('自訂劇本為空，改用預設劇本');
-      return loadDefaultScript();
+      if (allowDefault) {
+        await loadDefaultScript();
+        lastAppliedSignature = 'default';
+        return { applied: true, scriptSource: null };
+      }
+      return { applied: false, scriptSource: null };
     }
 
     try {
       const customList = JSON.parse(scriptSource);
       await loadRolesFromList(customList);
-      return;
+      lastAppliedSignature = signature;
+      return { applied: true, scriptSource };
     } catch (err) {
       console.error('解析自訂劇本失敗，改用預設劇本:', err);
-      return loadDefaultScript();
+      if (allowDefault) {
+        await loadDefaultScript();
+        lastAppliedSignature = 'default';
+        return { applied: true, scriptSource: null };
+      }
+      return { applied: false, scriptSource: null };
     }
   }
 
   if (config.selectedScript) {
-    return loadScriptByName(config.selectedScript);
+    await loadScriptByName(config.selectedScript);
+    lastAppliedSignature = signature;
+    return { applied: true, scriptSource: null };
   }
 
-  return loadDefaultScript();
-}
-
-async function applyCookieConfig(force = false) {
-  if (!force && isUsingTwitchConfig) {
-    return;
-  }
-
-  const config = loadConfigFromCookie();
-  const scriptFromCookie = loadScriptFromCookie();
-  const signature = JSON.stringify({ config: config || {}, script: scriptFromCookie });
-  if (!force && signature === lastCookieSignature) {
-    return;
-  }
-
-  lastCookieSignature = signature;
-
-  if (config && typeof config === 'object' && Object.keys(config).length > 0) {
-    await applyConfig(config);
-  } else {
+  if (allowDefault) {
     await loadDefaultScript();
+    lastAppliedSignature = signature;
+    return { applied: true, scriptSource: null };
   }
+
+  return { applied: false, scriptSource: null };
 }
 
-function ensureCookiePolling() {
-  if (cookiePollTimer !== null) {
-    return;
+async function applyFallbackConfig() {
+  const storedState = loadStoredViewerState();
+  if (storedState) {
+    const result = await applyConfig(storedState.config, {
+      force: true,
+      resolvedScript: storedState.scriptSource,
+      allowDefault: true
+    });
+
+    if (result.applied) {
+      if (!result.scriptSource && storedState.scriptSource) {
+        persistViewerState(null, null);
+      }
+      return;
+    }
+
+    persistViewerState(null, null);
   }
 
-  cookiePollTimer = setInterval(() => {
-    applyCookieConfig(false).catch(err => {
-      console.warn('更新 Cookie 設定時發生錯誤:', err);
-    });
-  }, COOKIE_POLL_INTERVAL);
+  await applyConfig(null, { force: true });
 }
 
 async function handleTwitchConfigChange() {
   const configStr = window.Twitch?.ext?.configuration?.broadcaster?.content;
   if (!configStr) {
-    isUsingTwitchConfig = false;
-    await applyCookieConfig(true);
+    persistViewerState(null, null);
+    await applyFallbackConfig();
     return;
   }
 
   try {
     const config = JSON.parse(configStr);
     if (!config || Object.keys(config).length === 0) {
-      isUsingTwitchConfig = false;
-      await applyCookieConfig(true);
+      persistViewerState(null, null);
+      await applyFallbackConfig();
       return;
     }
 
-    isUsingTwitchConfig = true;
-    lastCookieSignature = JSON.stringify(loadConfigFromCookie() || {});
-    await applyConfig(config);
+    const result = await applyConfig(config, { force: true });
+    if (result.applied) {
+      persistViewerState(config, result.scriptSource);
+    }
   } catch (err) {
-    console.error('解析 Twitch 設定錯誤，改用 Cookie 或預設劇本:', err);
-    isUsingTwitchConfig = false;
-    await applyCookieConfig(true);
+    console.error('解析 Twitch 設定錯誤，改用本機或預設劇本:', err);
+    await applyFallbackConfig();
   }
 }
 
@@ -651,9 +736,11 @@ function setupTwitchIntegration() {
         }
 
         twitchAuthorized = true;
-        isUsingTwitchConfig = true;
-        lastCookieSignature = JSON.stringify(loadConfigFromCookie() || {});
-        applyConfig(parsed).catch(err => {
+        applyConfig(parsed, { force: true }).then(result => {
+          if (result.applied) {
+            persistViewerState(parsed, result.scriptSource);
+          }
+        }).catch(err => {
           console.error('套用 Twitch 廣播設定時發生錯誤:', err);
         });
       } catch (err) {
@@ -666,21 +753,20 @@ function setupTwitchIntegration() {
 }
 
 async function init() {
-  ensureCookiePolling();
   const hasTwitch = setupTwitchIntegration();
 
-  await applyCookieConfig(true);
+  await applyFallbackConfig();
 
   if (!hasTwitch) {
     return;
   }
 
-  // 如果在合理時間內沒有取得授權，繼續沿用 Cookie 或預設設定
+  // 如果在合理時間內沒有取得授權，繼續沿用本機或預設設定
   setTimeout(() => {
     if (!twitchAuthorized) {
-      console.warn('未從 Twitch 取得授權回應，改用 Cookie 設定。');
-      applyCookieConfig(true).catch(err => {
-        console.warn('回退到 Cookie 設定時發生錯誤:', err);
+      console.warn('未從 Twitch 取得授權回應，沿用本機設定或預設劇本。');
+      applyFallbackConfig().catch(err => {
+        console.warn('套用本機設定時發生錯誤:', err);
       });
     }
   }, 5000);

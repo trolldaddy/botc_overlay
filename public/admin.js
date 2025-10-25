@@ -7,13 +7,12 @@ const saveCustomButton = document.getElementById('saveCustomButton');
 const deleteCustomButton = document.getElementById('deleteCustomButton');
 const saveButton = document.getElementById('saveButton');
 const statusMessage = document.getElementById('statusMessage');
-const CUSTOM_JSON_COOKIE = 'botc_custom_json';
-const OVERLAY_CONFIG_COOKIE = 'botc_overlay_config_v1';
-const OVERLAY_SCRIPT_COOKIE = 'botc_overlay_script_v1';
-const COOKIE_TTL_DAYS = 30;
 const LOCAL_SCRIPTS_KEY = 'botc_saved_custom_scripts_v1';
 const LOCAL_OPTION_PREFIX = 'local:';
 const CUSTOM_NEW_OPTION = '__custom__';
+const LOCAL_LAST_CUSTOM_JSON_KEY = 'botc_last_custom_json_v1';
+const LOCAL_LAST_CONFIG_KEY = 'botc_last_overlay_config_v1';
+const MAX_SCRIPT_CHUNK_SIZE = 3800;
 
 let builtinScripts = [];
 let savedCustomScripts = {};
@@ -26,9 +25,9 @@ const STATUS_COLORS = {
 
 if (storageNotice) {
   storageNotice.innerHTML = [
-    '✅ 儲存設定時會同時更新 Twitch 擴充設定與瀏覽器 Cookie。',
+    '✅ 儲存設定時會更新 Twitch 擴充設定，並同步一份資料到目前瀏覽器，方便再次編輯。',
     '<br />',
-    '📌 設定資訊儲存在 <code>botc_overlay_config_v1</code>，劇本內容儲存在 <code>botc_overlay_script_v1</code>，覆蓋頁面會讀取這兩個 Cookie 以顯示最新劇本。'
+    '📌 Twitch 觀眾會直接讀取擴充設定中的劇本資料，不需要 Cookie。'
   ].join('');
 }
 
@@ -37,113 +36,119 @@ function showStatus(message, type = 'success') {
   statusMessage.style.color = STATUS_COLORS[type] || STATUS_COLORS.success;
 }
 
-function setCookie(name, value, days) {
-  const date = new Date();
-  date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
-  const expires = `; expires=${date.toUTCString()}`;
-  document.cookie = `${name}=${encodeURIComponent(value)}${expires}; path=/`;
+function persistLastCustomJson(value) {
+  try {
+    if (typeof value === 'string' && value.trim()) {
+      window.localStorage?.setItem(LOCAL_LAST_CUSTOM_JSON_KEY, value);
+    } else {
+      window.localStorage?.removeItem(LOCAL_LAST_CUSTOM_JSON_KEY);
+    }
+  } catch (err) {
+    console.warn('儲存最近自訂劇本內容時發生錯誤:', err);
+  }
 }
 
-function getCookie(name) {
-  const match = document.cookie
-    .split(';')
-    .map(part => part.trim())
-    .find(part => part.startsWith(`${name}=`));
-
-  if (!match) {
+function loadLastCustomJson() {
+  try {
+    return window.localStorage?.getItem(LOCAL_LAST_CUSTOM_JSON_KEY) || '';
+  } catch (err) {
+    console.warn('載入最近自訂劇本內容時發生錯誤:', err);
     return '';
   }
-
-  return decodeURIComponent(match.substring(name.length + 1));
 }
 
-function persistCustomJson(value) {
-  setCookie(CUSTOM_JSON_COOKIE, value, COOKIE_TTL_DAYS);
-}
-
-function loadCustomJsonFromCookie() {
-  return getCookie(CUSTOM_JSON_COOKIE);
-}
-
-function sanitizeConfigForCookie(config) {
-  if (!config || typeof config !== 'object') {
-    return {};
-  }
-
-  const sanitized = {};
-
-  if (config.selectedScript) {
-    sanitized.selectedScript = config.selectedScript;
-  }
-
-  if (config.selectedScript === CUSTOM_NEW_OPTION && config.customName) {
-    sanitized.customName = config.customName;
-  }
-
-  if (config._timestamp) {
-    sanitized._timestamp = config._timestamp;
-  }
-
-  if (config.scriptVersion) {
-    sanitized.scriptVersion = config.scriptVersion;
-  }
-
-  return sanitized;
-}
-
-function persistOverlayConfig(content) {
-  const sanitized = sanitizeConfigForCookie(content);
-
+function persistLastConfig(config) {
   try {
-    if (!sanitized || Object.keys(sanitized).length === 0) {
-      setCookie(OVERLAY_CONFIG_COOKIE, '', -1);
+    if (!config) {
+      window.localStorage?.removeItem(LOCAL_LAST_CONFIG_KEY);
       return;
     }
 
-    setCookie(OVERLAY_CONFIG_COOKIE, JSON.stringify(sanitized), COOKIE_TTL_DAYS);
+    window.localStorage?.setItem(LOCAL_LAST_CONFIG_KEY, JSON.stringify(config));
   } catch (err) {
-    console.warn('儲存 Overlay 設定到 Cookie 時失敗:', err);
+    console.warn('儲存最近的覆蓋設定時失敗:', err);
   }
 }
 
-function loadOverlayConfigFromCookie() {
-  const raw = getCookie(OVERLAY_CONFIG_COOKIE);
-  if (!raw) {
-    return null;
-  }
-
+function loadLastConfig() {
   try {
-    return JSON.parse(raw);
-  } catch (err) {
-    console.warn('解析 Overlay 設定 Cookie 失敗:', err);
-    return null;
-  }
-}
-
-function persistOverlayScript(content) {
-  try {
-    const normalized = typeof content === 'string' ? content : JSON.stringify(content);
-    const encoded = encodeURIComponent(normalized);
-
-    if (encoded.length > 3800) {
-      throw new Error('自訂劇本內容超過瀏覽器單一 Cookie 容量限制，請刪減內容或改用較小的劇本');
+    const raw = window.localStorage?.getItem(LOCAL_LAST_CONFIG_KEY);
+    if (!raw) {
+      return null;
     }
 
-    setCookie(OVERLAY_SCRIPT_COOKIE, normalized, COOKIE_TTL_DAYS);
-    return true;
+    return JSON.parse(raw);
   } catch (err) {
-    console.warn('儲存劇本到 Cookie 時失敗:', err);
-    showStatus(`❌ ${err.message || '無法儲存劇本到 Cookie'}`, 'error');
-    return false;
+    console.warn('載入最近的覆蓋設定時失敗:', err);
+    return null;
   }
 }
 
-function clearOverlayScriptCookie() {
-  setCookie(OVERLAY_SCRIPT_COOKIE, '', -1);
+function computeScriptHash(text) {
+  if (typeof text !== 'string' || !text) {
+    return '0';
+  }
+
+  let hash = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    hash = (hash * 31 + text.charCodeAt(i)) >>> 0; // eslint-disable-line no-bitwise
+  }
+
+  return hash.toString(16);
 }
 
-function loadOverlayScriptFromCookie() {
-  return getCookie(OVERLAY_SCRIPT_COOKIE);
+function chunkScriptContent(text) {
+  if (typeof text !== 'string' || !text) {
+    return [];
+  }
+
+  const chunks = [];
+  for (let index = 0; index < text.length; index += MAX_SCRIPT_CHUNK_SIZE) {
+    chunks.push(text.slice(index, index + MAX_SCRIPT_CHUNK_SIZE));
+  }
+
+  return chunks;
+}
+
+function reconstructCustomJsonFromConfig(config) {
+  if (!config || typeof config !== 'object') {
+    return '';
+  }
+
+  if (typeof config.customJson === 'string' && config.customJson.trim()) {
+    return config.customJson;
+  }
+
+  if (Array.isArray(config.customChunks) && config.customChunks.length > 0) {
+    return config.customChunks.join('');
+  }
+
+  return '';
+}
+
+function sanitizeConfigForStorage(config) {
+  if (!config || typeof config !== 'object') {
+    return null;
+  }
+
+  const stored = {
+    selectedScript: config.selectedScript || '',
+    customName: config.customName || '',
+    scriptVersion: config.scriptVersion || config._timestamp || null,
+    scriptHash: config.scriptHash || null,
+    customJsonLength: typeof config.customJsonLength === 'number'
+      ? config.customJsonLength
+      : (typeof config.customJson === 'string' ? config.customJson.length : null),
+    _timestamp: config._timestamp || null
+  };
+
+  if (stored.selectedScript !== CUSTOM_NEW_OPTION) {
+    delete stored.customName;
+    delete stored.scriptHash;
+    delete stored.customJsonLength;
+  }
+
+  return stored;
 }
 
 function parseAndNormalizeScriptJson(rawJson) {
@@ -287,14 +292,15 @@ function handleScriptSelectionChange() {
     customNameEl.dataset.loadedName = selection.name;
     customJsonEl.dataset.loadedName = selection.name;
     customJsonEl.dataset.loadedValue = savedJson;
-    persistCustomJson(savedJson);
+    persistLastCustomJson(savedJson);
     return;
   }
 
   if (selection.type === 'customNew') {
-    const cachedJson = loadCustomJsonFromCookie();
+    const cachedJson = loadLastCustomJson();
     if (!customJsonEl.value && cachedJson) {
       customJsonEl.value = cachedJson;
+      persistLastCustomJson(cachedJson);
     }
     clearLoadedCustomMetadata();
     return;
@@ -307,12 +313,13 @@ function handleScriptSelectionChange() {
 }
 
 function updateFormFromConfig(config) {
-  if (config && typeof config === 'object') {
-    if (Object.keys(config).length > 0) {
-      persistOverlayConfig(config);
+  if (config && typeof config === 'object' && Object.keys(config).length > 0) {
+    const sanitized = sanitizeConfigForStorage(config);
+    if (sanitized) {
+      persistLastConfig(sanitized);
     }
 
-    const { selectedScript = '', customJson = '', customName = '' } = config;
+    const { selectedScript = '', customName = '' } = config;
 
     if (selectedScript && selectedScript !== CUSTOM_NEW_OPTION) {
       if (Array.from(scriptListEl.options).some(opt => opt.value === selectedScript)) {
@@ -326,26 +333,17 @@ function updateFormFromConfig(config) {
     }
 
     scriptListEl.value = CUSTOM_NEW_OPTION;
+    customNameEl.value = customName || '';
 
-    if (customName) {
-      customNameEl.value = customName;
-    }
-
-    let effectiveJson = '';
-
-    if (customJson) {
-      effectiveJson = customJson;
-      persistOverlayScript(customJson);
-    } else {
-      effectiveJson = loadOverlayScriptFromCookie() || '';
-    }
-
+    const effectiveJson = reconstructCustomJsonFromConfig(config) || loadLastCustomJson();
     if (effectiveJson) {
       customJsonEl.value = effectiveJson;
-      persistCustomJson(effectiveJson);
+      persistLastCustomJson(effectiveJson);
+    } else {
+      customJsonEl.value = '';
     }
 
-    if (customName && savedCustomScripts[customName] === effectiveJson) {
+    if (customName && savedCustomScripts[customName] === customJsonEl.value) {
       scriptListEl.value = getLocalOptionValue(customName);
     }
 
@@ -353,7 +351,13 @@ function updateFormFromConfig(config) {
     return;
   }
 
-  const cachedCustomJson = loadOverlayScriptFromCookie() || loadCustomJsonFromCookie();
+  const fallbackConfig = loadLastConfig();
+  if (fallbackConfig) {
+    updateFormFromConfig(fallbackConfig);
+    return;
+  }
+
+  const cachedCustomJson = loadLastCustomJson();
   if (cachedCustomJson) {
     scriptListEl.value = CUSTOM_NEW_OPTION;
     customJsonEl.value = cachedCustomJson;
@@ -386,7 +390,7 @@ function setupTwitchListeners() {
     if (config) {
       updateFormFromConfig(config);
     } else {
-      updateFormFromConfig(loadOverlayConfigFromCookie());
+      updateFormFromConfig(loadLastConfig());
     }
   };
 
@@ -425,7 +429,7 @@ async function initializeConfigForm() {
   handleScriptSelectionChange();
 
   if (!setupTwitchListeners()) {
-    updateFormFromConfig(loadOverlayConfigFromCookie());
+    updateFormFromConfig(loadLastConfig());
   }
 }
 
@@ -449,7 +453,7 @@ function handleCustomJsonInput(event) {
   }
 
   if (parseScriptSelection(scriptListEl.value).type === 'customNew') {
-    persistCustomJson(event.target.value);
+    persistLastCustomJson(event.target.value);
   }
 }
 
@@ -478,7 +482,7 @@ function saveCustomScript() {
 
   savedCustomScripts[name] = normalizedJson;
   persistSavedCustomScripts();
-  persistCustomJson(normalizedJson);
+  persistLastCustomJson(normalizedJson);
 
   const optionValue = getLocalOptionValue(name);
   renderScriptOptions(optionValue);
@@ -536,13 +540,18 @@ saveButton.addEventListener('click', async () => {
   }
 
   const timestamp = Date.now();
-  let cookieConfig;
-  let twitchConfig;
+  let payload;
+  let storageConfig = null;
+  let normalizedJson = '';
 
   if (selection.type === 'builtin') {
-    cookieConfig = { selectedScript: selection.value, _timestamp: timestamp };
-    twitchConfig = { ...cookieConfig };
-    clearOverlayScriptCookie();
+    storageConfig = {
+      selectedScript: selection.value,
+      _timestamp: timestamp,
+      scriptVersion: timestamp
+    };
+    payload = { ...storageConfig };
+    persistLastCustomJson('');
   } else {
     const customName = customNameEl.value.trim();
     const customJson = customJsonEl.value.trim();
@@ -552,7 +561,6 @@ saveButton.addEventListener('click', async () => {
       return;
     }
 
-    let normalizedJson;
     try {
       ({ normalized: normalizedJson } = parseAndNormalizeScriptJson(customJson));
     } catch (err) {
@@ -560,47 +568,62 @@ saveButton.addEventListener('click', async () => {
       return;
     }
 
-    persistCustomJson(normalizedJson);
+    persistLastCustomJson(normalizedJson);
     customJsonEl.value = normalizedJson;
     customJsonEl.dataset.loadedValue = normalizedJson;
     customJsonEl.dataset.loadedName = customName;
     customNameEl.dataset.loadedName = customName;
 
-    if (!persistOverlayScript(normalizedJson)) {
-      saveButton.disabled = false;
-      return;
-    }
-
     const scriptVersion = timestamp;
-    cookieConfig = {
+    const scriptHash = computeScriptHash(normalizedJson);
+    const customChunks = chunkScriptContent(normalizedJson);
+    storageConfig = {
       selectedScript: CUSTOM_NEW_OPTION,
       customName,
       _timestamp: timestamp,
-      scriptVersion
+      scriptVersion,
+      scriptHash,
+      customJsonLength: normalizedJson.length
     };
-    twitchConfig = {
-      ...cookieConfig,
-      customJson: normalizedJson
-    };
+
+    if (customChunks.length <= 1) {
+      payload = {
+        ...storageConfig,
+        customJson: normalizedJson
+      };
+    } else {
+      payload = {
+        ...storageConfig,
+        customChunks
+      };
+    }
   }
 
   saveButton.disabled = true;
   showStatus('💾 儲存中...', 'info');
 
   try {
-    persistOverlayConfig(cookieConfig);
-    if (window.Twitch?.ext?.configuration) {
-      const payload = JSON.stringify(twitchConfig || cookieConfig);
-      window.Twitch.ext.configuration.set('broadcaster', '1', payload);
-      if (window.Twitch.ext.send) {
-        try {
-          window.Twitch.ext.send('broadcast', 'application/json', payload);
-        } catch (sendErr) {
-          console.warn('透過 Twitch 廣播更新設定時失敗:', sendErr);
-        }
+    const sanitizedStorage = sanitizeConfigForStorage(storageConfig || payload);
+    if (sanitizedStorage) {
+      persistLastConfig(sanitizedStorage);
+    }
+
+    if (!window.Twitch?.ext?.configuration) {
+      showStatus('⚠️ 無法存取 Twitch Extension API，已將設定保存在本機', 'error');
+      return;
+    }
+
+    const payloadString = JSON.stringify(payload || storageConfig);
+    window.Twitch.ext.configuration.set('broadcaster', '1', payloadString);
+    if (window.Twitch.ext.send) {
+      try {
+        window.Twitch.ext.send('broadcast', 'application/json', payloadString);
+      } catch (sendErr) {
+        console.warn('透過 Twitch 廣播更新設定時失敗:', sendErr);
       }
     }
-    showStatus('✅ 設定已儲存並寫入 Cookie！請切換 Overlay 測試結果');
+
+    showStatus('✅ 設定已儲存並同步到 Twitch 擴充功能！');
   } catch (err) {
     console.error('儲存設定失敗:', err);
     showStatus('❌ 儲存設定失敗，請稍後再試', 'error');

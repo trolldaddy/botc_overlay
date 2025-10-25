@@ -31,6 +31,47 @@
     const customJsonEl = document.getElementById('customJson');
     const saveButton = document.getElementById('saveButton');
     const statusMessage = document.getElementById('statusMessage');
+    const MAX_SCRIPT_CHUNK_SIZE = 3800;
+
+    function computeScriptHash(text) {
+      if (!text) {
+        return '0';
+      }
+
+      let hash = 0;
+      for (let i = 0; i < text.length; i += 1) {
+        hash = (hash * 31 + text.charCodeAt(i)) >>> 0; // eslint-disable-line no-bitwise
+      }
+      return hash.toString(16);
+    }
+
+    function chunkScriptContent(text) {
+      if (!text) {
+        return [];
+      }
+
+      const chunks = [];
+      for (let index = 0; index < text.length; index += MAX_SCRIPT_CHUNK_SIZE) {
+        chunks.push(text.slice(index, index + MAX_SCRIPT_CHUNK_SIZE));
+      }
+      return chunks;
+    }
+
+    function reconstructCustomJson(config) {
+      if (!config || typeof config !== 'object') {
+        return '';
+      }
+
+      if (typeof config.customJson === 'string' && config.customJson.trim()) {
+        return config.customJson;
+      }
+
+      if (Array.isArray(config.customChunks) && config.customChunks.length > 0) {
+        return config.customChunks.join('');
+      }
+
+      return '';
+    }
 
     fetch('Allscript/scripts.json')
       .then(res => res.json())
@@ -46,25 +87,65 @@
 
     saveButton.addEventListener('click', () => {
       const selectedScript = scriptListEl.value;
-      const customJson = customJsonEl.value.trim();
-      const content = selectedScript === '__custom__'
-        ? { selectedScript, customJson, _ts: Date.now() }
-        : { selectedScript, _ts: Date.now() };
 
-      if (window.Twitch?.ext?.configuration) {
-        const payload = JSON.stringify(content);
-        window.Twitch.ext.configuration.set('broadcaster', '1', payload);
-        if (window.Twitch.ext.send) {
-          try {
-            window.Twitch.ext.send('broadcast', 'application/json', payload);
-          } catch (err) {
-            console.warn('透過 Twitch 廣播更新設定時失敗:', err);
-          }
-        }
-        statusMessage.textContent = '✅ 設定已儲存！請切換 Overlay 測試結果';
-      } else {
-        statusMessage.textContent = '❌ 無法存取 Twitch Extension API';
+      if (!selectedScript) {
+        statusMessage.textContent = '❌ 請先選擇劇本';
+        return;
       }
+
+      const timestamp = Date.now();
+      let payload;
+
+      if (selectedScript === '__custom__') {
+        const rawJson = customJsonEl.value.trim();
+        if (!rawJson) {
+          statusMessage.textContent = '❌ 請貼上自訂劇本內容';
+          return;
+        }
+
+        let normalized;
+        try {
+          normalized = JSON.stringify(JSON.parse(rawJson), null, 2);
+        } catch (err) {
+          statusMessage.textContent = `❌ 自訂劇本必須是有效的 JSON：${err.message}`;
+          return;
+        }
+
+        const chunks = chunkScriptContent(normalized);
+        const basePayload = {
+          selectedScript,
+          _timestamp: timestamp,
+          scriptVersion: timestamp,
+          scriptHash: computeScriptHash(normalized),
+          customJsonLength: normalized.length
+        };
+
+        payload = chunks.length <= 1
+          ? { ...basePayload, customJson: normalized }
+          : { ...basePayload, customChunks: chunks };
+      } else {
+        payload = {
+          selectedScript,
+          _timestamp: timestamp,
+          scriptVersion: timestamp
+        };
+      }
+
+      if (!window.Twitch?.ext?.configuration) {
+        statusMessage.textContent = '❌ 無法存取 Twitch Extension API';
+        return;
+      }
+
+      const payloadString = JSON.stringify(payload);
+      window.Twitch.ext.configuration.set('broadcaster', '1', payloadString);
+      if (window.Twitch.ext.send) {
+        try {
+          window.Twitch.ext.send('broadcast', 'application/json', payloadString);
+        } catch (err) {
+          console.warn('透過 Twitch 廣播更新設定時失敗:', err);
+        }
+      }
+      statusMessage.textContent = '✅ 設定已儲存！請切換 Overlay 測試結果';
     });
 
     if (window.Twitch?.ext) {
@@ -73,7 +154,7 @@
         try {
           const config = JSON.parse(configStr || '{}');
           scriptListEl.value = config.selectedScript || '';
-          customJsonEl.value = config.customJson || '';
+          customJsonEl.value = reconstructCustomJson(config);
           customJsonBlock.style.display = config.selectedScript === '__custom__' ? 'block' : 'none';
         } catch {}
       });
