@@ -70,6 +70,27 @@ const COOKIE_POLL_INTERVAL = 5000;
 
 let referenceDataPromise = null;
 
+const STATIC_FIRST_NIGHT_ENTRIES = [
+  {
+    id: 'evil_minion_info',
+    name: '爪牙訊息',
+    firstNight: 5,
+    firstNightReminder:
+      '• 如果有七名或更多玩家，喚醒所有爪牙。 • 展示「他是惡魔」的訊息標誌，並指向惡魔。',
+    image: '/Allicon/240px-Assassin.png',
+    placeholder: '爪牙'
+  },
+  {
+    id: 'evil_demon_info',
+    name: '惡魔訊息',
+    firstNight: 8,
+    firstNightReminder:
+      '• 展示「他們是你的爪牙」訊息標誌並指向所有爪牙。 • 展示「這些角色不在場」訊息標示並展示三個不在場的善良角色。',
+    image: '/Allicon/240px-Imp.png',
+    placeholder: '惡魔'
+  }
+];
+
 const TEAM_ALIASES = {
   townsfolk: 'townsfolk',
   townfolk: 'townsfolk',
@@ -193,19 +214,6 @@ function parseActionOrder(raw) {
   return value;
 }
 
-function formatActionOrder(raw) {
-  if (raw === null || raw === undefined) {
-    return '';
-  }
-
-  const value = Number(raw);
-  if (!Number.isNaN(value)) {
-    return Number.isInteger(value) ? value.toString() : value.toString();
-  }
-
-  return String(raw).trim();
-}
-
 function renderOrderList(container, entries, tooltipDirection) {
   if (!container) {
     return;
@@ -221,18 +229,30 @@ function renderOrderList(container, entries, tooltipDirection) {
     const item = document.createElement('div');
     item.className = 'order-item';
 
-    const valueSpan = document.createElement('span');
-    valueSpan.className = 'order-value';
-    valueSpan.textContent = entry.label || entry.value.toString();
+    const iconWrapper = document.createElement('div');
+    iconWrapper.className = 'order-icon';
+
+    if (entry.image) {
+      const img = document.createElement('img');
+      img.src = entry.image;
+      img.alt = entry.name;
+      iconWrapper.appendChild(img);
+    } else {
+      const placeholder = document.createElement('div');
+      placeholder.className = 'order-icon-placeholder';
+      const fallbackText = entry.placeholder || (entry.name ? entry.name.charAt(0) : '★');
+      placeholder.textContent = fallbackText;
+      iconWrapper.appendChild(placeholder);
+    }
 
     const nameSpan = document.createElement('span');
     nameSpan.className = 'order-name';
     nameSpan.textContent = entry.name;
 
-    item.appendChild(valueSpan);
+    item.appendChild(iconWrapper);
     item.appendChild(nameSpan);
 
-    attachTooltip(item, entry.ability, tooltipDirection);
+    attachTooltip(item, entry.tooltip, tooltipDirection);
 
     container.appendChild(item);
   });
@@ -391,6 +411,14 @@ async function loadRolesFromList(roleList) {
       ? combined.ability
       : (reference?.ability || '');
     const imageUrl = normalizeImageUrl(combined.image ?? reference?.image ?? '');
+    const firstNightReminder =
+      typeof combined.firstNightReminder === 'string' && combined.firstNightReminder.trim()
+        ? combined.firstNightReminder.trim()
+        : '';
+    const otherNightReminder =
+      typeof combined.otherNightReminder === 'string' && combined.otherNightReminder.trim()
+        ? combined.otherNightReminder.trim()
+        : '';
     const tooltipDirection = team === 'townsfolk' ? 'right' : 'left';
 
     const container = document.createElement('div');
@@ -412,21 +440,38 @@ async function loadRolesFromList(roleList) {
 
     const firstNightValue = parseActionOrder(combined.firstNight);
     if (firstNightValue !== null) {
+      const reminderText = firstNightReminder || '（沒有提醒）';
       firstNightEntries.push({
         value: firstNightValue,
-        label: formatActionOrder(combined.firstNight),
         name: displayName,
-        ability: tooltipText
+        image: imageUrl,
+        tooltip: reminderText
       });
     }
 
     const otherNightValue = parseActionOrder(combined.otherNight);
     if (otherNightValue !== null) {
+      const reminderText = otherNightReminder || '（沒有提醒）';
       otherNightEntries.push({
         value: otherNightValue,
-        label: formatActionOrder(combined.otherNight),
         name: displayName,
-        ability: tooltipText
+        image: imageUrl,
+        tooltip: reminderText
+      });
+    }
+  });
+
+  STATIC_FIRST_NIGHT_ENTRIES.forEach(entry => {
+    const value = parseActionOrder(entry.firstNight);
+    if (value !== null) {
+      firstNightEntries.push({
+        value,
+        name: entry.name,
+        image: entry.image ? normalizeImageUrl(entry.image) : '',
+        tooltip: (typeof entry.firstNightReminder === 'string' && entry.firstNightReminder.trim())
+          ? entry.firstNightReminder.trim()
+          : '（沒有提醒）',
+        placeholder: entry.placeholder || ''
       });
     }
   });
