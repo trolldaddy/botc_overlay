@@ -260,7 +260,10 @@ function renderOrderList(container, entries, tooltipDirection) {
 
 function getReferenceMap() {
   if (!referenceDataPromise) {
-    const referenceListUrl = resolveAssetUrl('/EVERY_SINGLE_ROLE_with_chinese_abilities.json');
+    const referenceListPath = 'new_EVERY_SINGLE_ROLE_with_chinese_abilities.json';
+    const referenceListUrl = assetBaseUrl
+      ? new URL(referenceListPath, assetBaseUrl).toString()
+      : referenceListPath;
     referenceDataPromise = fetch(referenceListUrl)
       .then(response => {
         if (!response.ok) {
