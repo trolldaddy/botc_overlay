@@ -5,7 +5,7 @@ const port = process.env.PORT || 8080;
 app.use(express.json());
 app.use(express.static('public'));
 
-let seatingData = {};  // 暫存座位設定
+let seatingData = {}; // 暫存座位設定
 
 app.post('/api/seating', (req, res) => {
   seatingData = req.body;
