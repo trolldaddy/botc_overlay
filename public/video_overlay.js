@@ -127,7 +127,7 @@ async function decompressBase64WithCache(base64, mode = COMPRESSION_MODE) {
 const DEFAULT_SCRIPT = 'trouble_brewing.json';
 const LOCAL_STORAGE_CONFIG_KEY = 'botc_overlay_last_config_v1';
 const LOCAL_STORAGE_SCRIPT_KEY = 'botc_overlay_last_script_v1';
-const COMPRESSION_MODE = window.CompressionHelper?.COMPRESSION_MODE || 'gzip/base64';
+const COMPRESSION_MODE = window.CompressionHelper?.COMPRESSION_MODE || 'lz-string/base64';
 const LEGACY_LZMA_MODE = window.CompressionHelper?.LEGACY_LZMA_MODE || 'lzma/base64';
 
 const decompressCache = new Map();

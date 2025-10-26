@@ -1,7 +1,7 @@
 (function (global) {
   const helper = {};
   const DEFAULT_CHUNK_SIZE = 4500;
-  const DEFAULT_MODE = 'gzip/base64';
+  const DEFAULT_MODE = 'lz-string/base64';
   const LEGACY_LZMA_MODE = 'lzma/base64';
   const LEGACY_GZIP_MODE = 'gzip/base64';
   const textEncoder = typeof TextEncoder !== 'undefined' ? new TextEncoder() : null;
@@ -278,72 +278,33 @@
     return bytes;
   }
 
-  async function gzipCompress(bytes) {
-    if (typeof CompressionStream !== 'function') {
-      throw new Error('瀏覽器不支援 CompressionStream');
-    }
-
-    const stream = new CompressionStream('gzip');
-    const writer = stream.writable.getWriter();
-    await writer.write(bytes);
-    await writer.close();
-
-    const response = new Response(stream.readable);
-    const buffer = await response.arrayBuffer();
-    return new Uint8Array(buffer);
-  }
-
   async function compressToBase64(text) {
     if (typeof text !== 'string') {
       return null;
     }
 
-    const utf8Bytes = encodeUtf8(text);
-    if (!utf8Bytes || utf8Bytes.length === 0) {
-      return {
-        base64: '',
-        originalLength: 0,
-        compressedLength: 0,
-        compressedByteLength: 0,
-        mode: DEFAULT_MODE
-      };
-    }
-
-    if (typeof CompressionStream === 'function') {
-      try {
-        const compressedBytes = await gzipCompress(utf8Bytes);
-        const base64 = uint8ToBase64(compressedBytes);
-        return {
-          base64,
-          originalLength: utf8Bytes.length,
-          compressedLength: base64.length,
-          compressedByteLength: compressedBytes.length,
-          mode: DEFAULT_MODE
-        };
-      } catch (err) {
-        console.warn('Gzip 壓縮失敗，將改用備援模式:', err);
-      }
-    }
-
-    try {
-      const codes = generateLzwCodes(utf8Bytes);
-      if (!codes || codes.length === 0) {
-        return null;
-      }
-
-      const compressedBytes = packCodesToBytes(codes);
-      const base64 = uint8ToBase64(compressedBytes);
-      return {
-        base64,
-        originalLength: utf8Bytes.length,
-        compressedLength: base64.length,
-        compressedByteLength: compressedBytes.length,
-        mode: LEGACY_LZMA_MODE
-      };
-    } catch (err) {
-      console.warn('LZW 壓縮失敗，將回退為未壓縮模式:', err);
+    if (typeof global.LZString !== 'object' || typeof global.LZString.compressToBase64 !== 'function') {
+      console.warn('LZString 尚未載入，無法壓縮資料');
       return null;
     }
+
+    const utf8Bytes = encodeUtf8(text);
+    const base64 = global.LZString.compressToBase64(text);
+    if (typeof base64 !== 'string') {
+      console.warn('LZString 壓縮失敗，回傳了非字串結果');
+      return null;
+    }
+
+    const padding = base64.endsWith('==') ? 2 : (base64.endsWith('=') ? 1 : 0);
+    const compressedByteLength = Math.max(0, Math.floor((base64.length * 3) / 4) - padding);
+
+    return {
+      base64,
+      originalLength: utf8Bytes.length,
+      compressedLength: base64.length,
+      compressedByteLength,
+      mode: DEFAULT_MODE
+    };
   }
 
   async function decompressGzip(base64) {
@@ -370,11 +331,25 @@
       return '';
     }
 
-    if (mode === LEGACY_GZIP_MODE || mode === DEFAULT_MODE) {
+    const normalizedMode = typeof mode === 'string' ? mode.toLowerCase() : DEFAULT_MODE;
+
+    if (normalizedMode === DEFAULT_MODE || normalizedMode === 'lzstring/base64') {
+      if (typeof global.LZString !== 'object' || typeof global.LZString.decompressFromBase64 !== 'function') {
+        throw new Error('LZString 尚未載入，無法解壓縮資料');
+      }
+
+      const result = global.LZString.decompressFromBase64(base64);
+      if (result == null) {
+        throw new Error('LZString 解壓縮失敗');
+      }
+      return result;
+    }
+
+    if (normalizedMode === LEGACY_GZIP_MODE) {
       return decompressGzip(base64);
     }
 
-    if (mode === LEGACY_LZMA_MODE) {
+    if (normalizedMode === LEGACY_LZMA_MODE) {
       try {
         const compressed = base64ToUint8(base64);
         const codes = unpackBytesToCodes(compressed);
@@ -386,15 +361,15 @@
       }
     }
 
-    try {
-      const compressed = base64ToUint8(base64);
-      const codes = unpackBytesToCodes(compressed);
-      const decompressed = reconstructBytesFromCodes(codes);
-      return decodeUtf8(decompressed);
-    } catch (err) {
-      console.warn('未知壓縮模式，嘗試使用 gzip 備援:', err);
-      return decompressGzip(base64);
+    if (typeof global.LZString === 'object' && typeof global.LZString.decompressFromBase64 === 'function') {
+      const fallback = global.LZString.decompressFromBase64(base64);
+      if (fallback != null) {
+        return fallback;
+      }
     }
+
+    console.warn(`未知的壓縮模式 (${mode})，嘗試使用 gzip 備援解壓`);
+    return decompressGzip(base64);
   }
 
   helper.MAX_CHUNK_SIZE = DEFAULT_CHUNK_SIZE;

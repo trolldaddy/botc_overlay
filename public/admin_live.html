@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>BOTC Admin</title>
   <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
+  <script src="lz-string.min.js"></script>
   <script src="compression.js"></script>
   <style>
     body { background: #111; color: white; font-family: "Microsoft JhengHei", sans-serif; padding: 20px; }
@@ -34,7 +35,7 @@
     const statusMessage = document.getElementById('statusMessage');
 
     const MAX_COMPRESSED_CHUNK_SIZE = window.CompressionHelper?.MAX_CHUNK_SIZE || 4500;
-    const COMPRESSION_MODE = window.CompressionHelper?.COMPRESSION_MODE || 'gzip/base64';
+    const COMPRESSION_MODE = window.CompressionHelper?.COMPRESSION_MODE || 'lz-string/base64';
     const LEGACY_LZMA_MODE = window.CompressionHelper?.LEGACY_LZMA_MODE || 'lzma/base64';
     const TWITCH_SEGMENT_LIMIT = 4800;
     const MAX_SEGMENT_COUNT = 2;
