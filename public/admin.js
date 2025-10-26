@@ -607,10 +607,6 @@ function deleteCustomScript() {
     return;
   }
 
-  if (!window.confirm(`確定要刪除自訂劇本「${name}」嗎？`)) {
-    return;
-  }
-
   const nextScripts = { ...savedCustomScripts };
   delete nextScripts[name];
   savedCustomScripts = nextScripts;
