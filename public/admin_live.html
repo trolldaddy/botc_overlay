@@ -34,7 +34,7 @@
     const statusMessage = document.getElementById('statusMessage');
 
     const MAX_COMPRESSED_CHUNK_SIZE = window.CompressionHelper?.MAX_CHUNK_SIZE || 4800;
-    const COMPRESSION_MODE = window.CompressionHelper?.COMPRESSION_MODE || 'gzip/base64';
+    const COMPRESSION_MODE = window.CompressionHelper?.COMPRESSION_MODE || 'lzma/base64';
     const decompressCache = new Map();
 
     function computeScriptHash(text) {
@@ -73,35 +73,41 @@
 
       return {
         base64: result.base64,
+        mode: result.mode || COMPRESSION_MODE,
         compressedLength: typeof result.compressedLength === 'number'
           ? result.compressedLength
-          : result.base64.length
+          : result.base64.length,
+        compressedByteLength: typeof result.compressedByteLength === 'number'
+          ? result.compressedByteLength
+          : undefined
       };
     }
 
-    async function decompressBase64(base64) {
+    async function decompressBase64(base64, mode = COMPRESSION_MODE) {
       if (!base64) {
         return '';
       }
 
-      if (decompressCache.has(base64)) {
-        const cached = decompressCache.get(base64);
+      const cacheKey = `${mode || 'default'}:${base64}`;
+
+      if (decompressCache.has(cacheKey)) {
+        const cached = decompressCache.get(cacheKey);
         return typeof cached === 'string' ? cached : cached;
       }
 
       const request = window.CompressionHelper?.decompressFromBase64
-        ? window.CompressionHelper.decompressFromBase64(base64)
+        ? window.CompressionHelper.decompressFromBase64(base64, mode)
             .then(result => {
-              decompressCache.set(base64, result);
+              decompressCache.set(cacheKey, result);
               return result;
             })
             .catch(err => {
-              decompressCache.delete(base64);
+              decompressCache.delete(cacheKey);
               throw err;
             })
         : Promise.reject(new Error('瀏覽器不支援解壓縮功能'));
 
-      decompressCache.set(base64, request);
+      decompressCache.set(cacheKey, request);
       return request;
     }
 
@@ -114,12 +120,14 @@
         return config.customJson;
       }
 
+      const compressionMode = config.compression || COMPRESSION_MODE;
+
       if (typeof config.compressedBase64 === 'string' && config.compressedBase64.trim()) {
-        return decompressBase64(config.compressedBase64);
+        return decompressBase64(config.compressedBase64, compressionMode);
       }
 
       if (Array.isArray(config.compressedChunks) && config.compressedChunks.length > 0) {
-        return decompressBase64(config.compressedChunks.join(''));
+        return decompressBase64(config.compressedChunks.join(''), compressionMode);
       }
 
       if (Array.isArray(config.customChunks) && config.customChunks.length > 0) {
@@ -216,8 +224,11 @@
                 scriptVersion: timestamp,
                 scriptHash: computeScriptHash(normalized),
                 customJsonLength: normalized.length,
-                compression: COMPRESSION_MODE,
-                compressedLength: compressed.compressedLength || compressed.base64.length
+                compression: compressed.mode || COMPRESSION_MODE,
+                compressedLength: compressed.compressedLength || compressed.base64.length,
+                compressedByteLength: typeof compressed.compressedByteLength === 'number'
+                  ? compressed.compressedByteLength
+                  : undefined
               };
 
               payload = chunks.length <= 1

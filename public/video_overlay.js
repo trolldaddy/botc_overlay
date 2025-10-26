@@ -94,36 +94,38 @@ function resolveAssetUrl(path) {
   }
 }
 
-async function decompressBase64WithCache(base64) {
+async function decompressBase64WithCache(base64, mode = COMPRESSION_MODE) {
   if (typeof base64 !== 'string' || !base64) {
     return '';
   }
 
-  if (decompressCache.has(base64)) {
-    const cached = decompressCache.get(base64);
+  const cacheKey = `${mode || 'default'}:${base64}`;
+
+  if (decompressCache.has(cacheKey)) {
+    const cached = decompressCache.get(cacheKey);
     return typeof cached === 'string' ? cached : cached;
   }
 
   const request = window.CompressionHelper?.decompressFromBase64
-    ? window.CompressionHelper.decompressFromBase64(base64)
+    ? window.CompressionHelper.decompressFromBase64(base64, mode)
         .then(result => {
-          decompressCache.set(base64, result);
+          decompressCache.set(cacheKey, result);
           return result;
         })
         .catch(err => {
-          decompressCache.delete(base64);
+          decompressCache.delete(cacheKey);
           throw err;
         })
     : Promise.reject(new Error('瀏覽器不支援解壓縮功能'));
 
-  decompressCache.set(base64, request);
+  decompressCache.set(cacheKey, request);
   return request;
 }
 
 const DEFAULT_SCRIPT = 'trouble_brewing.json';
 const LOCAL_STORAGE_CONFIG_KEY = 'botc_overlay_last_config_v1';
 const LOCAL_STORAGE_SCRIPT_KEY = 'botc_overlay_last_script_v1';
-const COMPRESSION_MODE = window.CompressionHelper?.COMPRESSION_MODE || 'gzip/base64';
+const COMPRESSION_MODE = window.CompressionHelper?.COMPRESSION_MODE || 'lzma/base64';
 
 const decompressCache = new Map();
 
@@ -376,9 +378,11 @@ async function resolveCustomScript(config, resolvedScript) {
     return config.customJson;
   }
 
+  const compressionMode = config.compression || COMPRESSION_MODE;
+
   if (typeof config.compressedBase64 === 'string' && config.compressedBase64.trim()) {
     try {
-      return await decompressBase64WithCache(config.compressedBase64);
+      return await decompressBase64WithCache(config.compressedBase64, compressionMode);
     } catch (err) {
       console.warn('解壓縮自訂劇本失敗，將嘗試其他來源:', err);
     }
@@ -386,7 +390,7 @@ async function resolveCustomScript(config, resolvedScript) {
 
   if (Array.isArray(config.compressedChunks) && config.compressedChunks.length > 0) {
     try {
-      return await decompressBase64WithCache(config.compressedChunks.join(''));
+      return await decompressBase64WithCache(config.compressedChunks.join(''), compressionMode);
     } catch (err) {
       console.warn('解壓縮自訂劇本失敗，將嘗試其他來源:', err);
     }

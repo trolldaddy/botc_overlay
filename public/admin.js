@@ -13,7 +13,7 @@ const CUSTOM_NEW_OPTION = '__custom__';
 const LOCAL_LAST_CUSTOM_JSON_KEY = 'botc_last_custom_json_v1';
 const LOCAL_LAST_CONFIG_KEY = 'botc_last_overlay_config_v1';
 const MAX_COMPRESSED_CHUNK_SIZE = window.CompressionHelper?.MAX_CHUNK_SIZE || 4800;
-const COMPRESSION_MODE = window.CompressionHelper?.COMPRESSION_MODE || 'gzip/base64';
+const COMPRESSION_MODE = window.CompressionHelper?.COMPRESSION_MODE || 'lzma/base64';
 
 const decompressCache = new Map();
 
@@ -113,29 +113,31 @@ function chunkCompressedText(text) {
   return chunks;
 }
 
-async function decompressBase64WithCache(base64) {
+async function decompressBase64WithCache(base64, mode = COMPRESSION_MODE) {
   if (typeof base64 !== 'string' || !base64) {
     return '';
   }
 
-  if (decompressCache.has(base64)) {
-    const cached = decompressCache.get(base64);
+  const cacheKey = `${mode || 'default'}:${base64}`;
+
+  if (decompressCache.has(cacheKey)) {
+    const cached = decompressCache.get(cacheKey);
     return typeof cached === 'string' ? cached : cached;
   }
 
   const request = window.CompressionHelper?.decompressFromBase64
-    ? window.CompressionHelper.decompressFromBase64(base64)
+    ? window.CompressionHelper.decompressFromBase64(base64, mode)
         .then(result => {
-          decompressCache.set(base64, result);
+          decompressCache.set(cacheKey, result);
           return result;
         })
         .catch(err => {
-          decompressCache.delete(base64);
+          decompressCache.delete(cacheKey);
           throw err;
         })
     : Promise.reject(new Error('瀏覽器不支援解壓縮功能'));
 
-  decompressCache.set(base64, request);
+  decompressCache.set(cacheKey, request);
   return request;
 }
 
@@ -165,9 +167,11 @@ async function reconstructCustomJsonFromConfig(config) {
     return config.customJson;
   }
 
+  const compressionMode = config.compression || COMPRESSION_MODE;
+
   if (Array.isArray(config.compressedChunks) && config.compressedChunks.length > 0) {
     try {
-      return await decompressBase64WithCache(config.compressedChunks.join(''));
+      return await decompressBase64WithCache(config.compressedChunks.join(''), compressionMode);
     } catch (err) {
       console.error('解壓縮自訂劇本失敗:', err);
     }
@@ -175,7 +179,7 @@ async function reconstructCustomJsonFromConfig(config) {
 
   if (typeof config.compressedBase64 === 'string' && config.compressedBase64.trim()) {
     try {
-      return await decompressBase64WithCache(config.compressedBase64);
+      return await decompressBase64WithCache(config.compressedBase64, compressionMode);
     } catch (err) {
       console.error('解壓縮自訂劇本失敗:', err);
     }
@@ -697,8 +701,11 @@ saveButton.addEventListener('click', async () => {
     };
 
     if (usedCompression) {
-      storageConfig.compression = COMPRESSION_MODE;
-      storageConfig.compressedByteLength = compressed.compressedLength || compressed.base64.length;
+      const mode = compressed.mode || COMPRESSION_MODE;
+      storageConfig.compression = mode;
+      storageConfig.compressedByteLength = typeof compressed.compressedByteLength === 'number'
+        ? compressed.compressedByteLength
+        : (compressed.compressedLength || compressed.base64.length);
       storageConfig.compressedLength = compressed.base64.length;
 
       if (compressedChunks.length <= 1) {
