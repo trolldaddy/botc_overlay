@@ -601,7 +601,8 @@ function deleteCustomScript() {
   }
 
   const { name } = selection;
-  if (!(name in savedCustomScripts)) {
+  const storedJson = savedCustomScripts[name];
+  if (typeof storedJson !== 'string') {
     showStatus(`❌ 找不到名為「${name}」的自訂劇本`, 'error');
     return;
   }
@@ -610,8 +611,23 @@ function deleteCustomScript() {
     return;
   }
 
-  delete savedCustomScripts[name];
+  const nextScripts = { ...savedCustomScripts };
+  delete nextScripts[name];
+  savedCustomScripts = nextScripts;
   persistSavedCustomScripts();
+
+  if (customJsonEl.dataset.loadedName === name) {
+    clearLoadedCustomMetadata();
+  }
+
+  if (customNameEl.value.trim() === name) {
+    customNameEl.value = '';
+  }
+
+  if (customJsonEl.dataset.loadedValue === storedJson) {
+    customJsonEl.value = '';
+    persistLastCustomJson('');
+  }
 
   renderScriptOptions(CUSTOM_NEW_OPTION);
   scriptListEl.value = CUSTOM_NEW_OPTION;
