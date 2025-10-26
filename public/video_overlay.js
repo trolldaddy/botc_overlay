@@ -39,6 +39,8 @@ const categoryElements = {
 let isVisible = false;
 let twitchAuthorized = false;
 let lastAppliedSignature = null;
+let twitchAuthData = { channelId: null, clientId: null, userId: null };
+let latestGlobalChunk = null;
 
 if (isMobileLayout) {
   isVisible = true;
@@ -125,7 +127,8 @@ async function decompressBase64WithCache(base64, mode = COMPRESSION_MODE) {
 const DEFAULT_SCRIPT = 'trouble_brewing.json';
 const LOCAL_STORAGE_CONFIG_KEY = 'botc_overlay_last_config_v1';
 const LOCAL_STORAGE_SCRIPT_KEY = 'botc_overlay_last_script_v1';
-const COMPRESSION_MODE = window.CompressionHelper?.COMPRESSION_MODE || 'lzma/base64';
+const COMPRESSION_MODE = window.CompressionHelper?.COMPRESSION_MODE || 'gzip/base64';
+const LEGACY_LZMA_MODE = window.CompressionHelper?.LEGACY_LZMA_MODE || 'lzma/base64';
 
 const decompressCache = new Map();
 
@@ -145,6 +148,23 @@ const TEAM_ALIASES = {
   jinxed: 'a jinxed',
   jinx: 'a jinxed'
 };
+
+function updateLatestGlobalChunk() {
+  const globalContent = window.Twitch?.ext?.configuration?.global?.content;
+  if (!globalContent) {
+    latestGlobalChunk = null;
+    return null;
+  }
+
+  try {
+    latestGlobalChunk = JSON.parse(globalContent);
+  } catch (err) {
+    latestGlobalChunk = null;
+    console.warn('解析 Twitch 全域設定失敗:', err);
+  }
+
+  return latestGlobalChunk;
+}
 
 const CHINESE_TEAM_ALIASES = {
   鎮民: 'townsfolk',
@@ -380,6 +400,30 @@ async function resolveCustomScript(config, resolvedScript) {
 
   const compressionMode = config.compression || COMPRESSION_MODE;
 
+  if (typeof config.chunk0 === 'string' && config.chunk0.trim()) {
+    const chunkCount = typeof config.chunkCount === 'number' ? config.chunkCount : 1;
+    let extraChunk = typeof config.extraChunkData === 'string' ? config.extraChunkData : '';
+
+    if (chunkCount > 1 && !extraChunk) {
+      const latest = latestGlobalChunk || updateLatestGlobalChunk();
+      if (latest
+        && latest.id === config.extraChunkId
+        && (latest.channelId === undefined
+          || !twitchAuthData.channelId
+          || latest.channelId === twitchAuthData.channelId)
+        && typeof latest.chunk === 'string') {
+        extraChunk = latest.chunk;
+      }
+    }
+
+    if (chunkCount > 1 && !extraChunk) {
+      throw new Error('缺少自訂劇本的額外資料區塊');
+    }
+
+    const combinedBase64 = chunkCount > 1 ? config.chunk0 + extraChunk : config.chunk0;
+    return decompressBase64WithCache(combinedBase64, compressionMode);
+  }
+
   if (typeof config.compressedBase64 === 'string' && config.compressedBase64.trim()) {
     try {
       return await decompressBase64WithCache(config.compressedBase64, compressionMode);
@@ -427,8 +471,11 @@ function computeConfigSignature(config, resolvedScript) {
   const compressedByteLength = typeof config.compressedByteLength === 'number'
     ? config.compressedByteLength
     : null;
+  const chunkCount = typeof config.chunkCount === 'number' ? config.chunkCount : null;
+  const chunk0Length = typeof config.chunk0 === 'string' ? config.chunk0.length : null;
+  const extraChunkId = typeof config.extraChunkId === 'string' ? config.extraChunkId : null;
 
-  return JSON.stringify({ selectedScript, scriptVersion, scriptHash, customLength, compression, compressedLength, compressedByteLength });
+  return JSON.stringify({ selectedScript, scriptVersion, scriptHash, customLength, compression, compressedLength, compressedByteLength, chunkCount, chunk0Length, extraChunkId });
 }
 
 function prepareConfigForStorage(config) {
@@ -451,20 +498,44 @@ function prepareConfigForStorage(config) {
         ? config.compressedChunks.join('').length
         : (typeof config.compressedBase64 === 'string'
           ? config.compressedBase64.length
-          : null)),
+          : (typeof config.chunk0 === 'string'
+            ? (config.chunk0.length + (typeof config.extraChunkData === 'string' ? config.extraChunkData.length : 0))
+            : null))),
     compressedByteLength: typeof config.compressedByteLength === 'number'
       ? config.compressedByteLength
       : null,
+    chunkCount: typeof config.chunkCount === 'number' ? config.chunkCount : null,
+    chunk0: typeof config.chunk0 === 'string' ? config.chunk0 : null,
+    extraChunkId: typeof config.extraChunkId === 'string' ? config.extraChunkId : null,
+    extraChunkData: typeof config.extraChunkData === 'string' ? config.extraChunkData : null,
+    compressedBase64: typeof config.compressedBase64 === 'string' ? config.compressedBase64 : null,
+    compressedChunks: Array.isArray(config.compressedChunks) ? [...config.compressedChunks] : null,
+    customJson: typeof config.customJson === 'string' ? config.customJson : null,
+    customChunks: Array.isArray(config.customChunks) ? [...config.customChunks] : null,
     _timestamp: config._timestamp || null
   };
+
+  Object.keys(stored).forEach(key => {
+    if (stored[key] === null || typeof stored[key] === 'undefined') {
+      delete stored[key];
+    }
+  });
 
   if (stored.selectedScript !== '__custom__') {
     delete stored.customName;
     delete stored.scriptHash;
     delete stored.customJsonLength;
+    delete stored.customJson;
+    delete stored.customChunks;
     delete stored.compression;
     delete stored.compressedLength;
     delete stored.compressedByteLength;
+    delete stored.compressedBase64;
+    delete stored.compressedChunks;
+    delete stored.chunkCount;
+    delete stored.chunk0;
+    delete stored.extraChunkId;
+    delete stored.extraChunkData;
   }
 
   return stored;
@@ -756,6 +827,7 @@ async function applyFallbackConfig() {
 }
 
 async function handleTwitchConfigChange() {
+  updateLatestGlobalChunk();
   const configStr = window.Twitch?.ext?.configuration?.broadcaster?.content;
   if (!configStr) {
     persistViewerState(null, null);
@@ -769,6 +841,18 @@ async function handleTwitchConfigChange() {
       persistViewerState(null, null);
       await applyFallbackConfig();
       return;
+    }
+
+    if (config.extraChunkId && !config.extraChunkData) {
+      const chunkSource = latestGlobalChunk || updateLatestGlobalChunk();
+      if (chunkSource
+        && chunkSource.id === config.extraChunkId
+        && (chunkSource.channelId === undefined
+          || !twitchAuthData.channelId
+          || chunkSource.channelId === twitchAuthData.channelId)
+        && typeof chunkSource.chunk === 'string') {
+        config.extraChunkData = chunkSource.chunk;
+      }
     }
 
     const result = await applyConfig(config, { force: true });
@@ -797,13 +881,20 @@ function setupTwitchIntegration() {
     });
   };
 
-  twitchExt.onAuthorized(() => {
+  twitchExt.onAuthorized(auth => {
     twitchAuthorized = true;
+    twitchAuthData = {
+      channelId: auth?.channelId || null,
+      clientId: auth?.clientId || null,
+      userId: auth?.userId || null
+    };
+    updateLatestGlobalChunk();
     safeTrigger();
   });
 
   if (twitchExt.configuration?.onChanged) {
     twitchExt.configuration.onChanged(() => {
+      updateLatestGlobalChunk();
       safeTrigger();
     });
   }
@@ -821,6 +912,17 @@ function setupTwitchIntegration() {
         }
 
         twitchAuthorized = true;
+        if (parsed.extraChunkId && !parsed.extraChunkData) {
+          const chunkSource = latestGlobalChunk || updateLatestGlobalChunk();
+          if (chunkSource
+            && chunkSource.id === parsed.extraChunkId
+            && (chunkSource.channelId === undefined
+              || !twitchAuthData.channelId
+              || chunkSource.channelId === twitchAuthData.channelId)
+            && typeof chunkSource.chunk === 'string') {
+            parsed.extraChunkData = chunkSource.chunk;
+          }
+        }
         applyConfig(parsed, { force: true }).then(result => {
           if (result.applied) {
             persistViewerState(parsed, result.scriptSource);

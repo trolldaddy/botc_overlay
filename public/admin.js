@@ -12,13 +12,18 @@ const LOCAL_OPTION_PREFIX = 'local:';
 const CUSTOM_NEW_OPTION = '__custom__';
 const LOCAL_LAST_CUSTOM_JSON_KEY = 'botc_last_custom_json_v1';
 const LOCAL_LAST_CONFIG_KEY = 'botc_last_overlay_config_v1';
-const MAX_COMPRESSED_CHUNK_SIZE = window.CompressionHelper?.MAX_CHUNK_SIZE || 4800;
-const COMPRESSION_MODE = window.CompressionHelper?.COMPRESSION_MODE || 'lzma/base64';
+const MAX_COMPRESSED_CHUNK_SIZE = window.CompressionHelper?.MAX_CHUNK_SIZE || 4500;
+const COMPRESSION_MODE = window.CompressionHelper?.COMPRESSION_MODE || 'gzip/base64';
+const LEGACY_LZMA_MODE = window.CompressionHelper?.LEGACY_LZMA_MODE || 'lzma/base64';
+const TWITCH_SEGMENT_LIMIT = 4800;
+const MAX_SEGMENT_COUNT = 2;
 
 const decompressCache = new Map();
 
 let builtinScripts = [];
 let savedCustomScripts = {};
+let twitchAuth = { channelId: null, clientId: null, token: null, userId: null };
+let twitchAuthorized = false;
 
 const STATUS_COLORS = {
   success: 'lightgreen',
@@ -169,6 +174,29 @@ async function reconstructCustomJsonFromConfig(config) {
 
   const compressionMode = config.compression || COMPRESSION_MODE;
 
+  if (typeof config.chunk0 === 'string' && config.chunk0.trim()) {
+    const chunkCount = typeof config.chunkCount === 'number' ? config.chunkCount : 1;
+    if (chunkCount > 1) {
+      const extraChunk = typeof config.extraChunkData === 'string' ? config.extraChunkData : '';
+      if (!extraChunk) {
+        throw new Error('缺少自訂劇本的額外資料區塊');
+      }
+
+      try {
+        return await decompressBase64WithCache(config.chunk0 + extraChunk, compressionMode);
+      } catch (err) {
+        console.error('解壓縮分段自訂劇本失敗:', err);
+        throw err;
+      }
+    }
+
+    try {
+      return await decompressBase64WithCache(config.chunk0, compressionMode);
+    } catch (err) {
+      console.error('解壓縮自訂劇本失敗:', err);
+    }
+  }
+
   if (Array.isArray(config.compressedChunks) && config.compressedChunks.length > 0) {
     try {
       return await decompressBase64WithCache(config.compressedChunks.join(''), compressionMode);
@@ -212,20 +240,44 @@ function sanitizeConfigForStorage(config) {
         ? config.compressedChunks.join('').length
         : (typeof config.compressedBase64 === 'string'
           ? config.compressedBase64.length
-          : null)),
+          : (typeof config.chunk0 === 'string'
+            ? (config.chunk0.length + (typeof config.extraChunkData === 'string' ? config.extraChunkData.length : 0))
+            : null))),
     compressedByteLength: typeof config.compressedByteLength === 'number'
       ? config.compressedByteLength
       : null,
+    chunkCount: typeof config.chunkCount === 'number' ? config.chunkCount : null,
+    chunk0: typeof config.chunk0 === 'string' ? config.chunk0 : null,
+    extraChunkId: typeof config.extraChunkId === 'string' ? config.extraChunkId : null,
+    extraChunkData: typeof config.extraChunkData === 'string' ? config.extraChunkData : null,
+    compressedBase64: typeof config.compressedBase64 === 'string' ? config.compressedBase64 : null,
+    compressedChunks: Array.isArray(config.compressedChunks) ? [...config.compressedChunks] : null,
+    customJson: typeof config.customJson === 'string' ? config.customJson : null,
+    customChunks: Array.isArray(config.customChunks) ? [...config.customChunks] : null,
     _timestamp: config._timestamp || null
   };
+
+  Object.keys(stored).forEach(key => {
+    if (stored[key] === null || typeof stored[key] === 'undefined') {
+      delete stored[key];
+    }
+  });
 
   if (stored.selectedScript !== CUSTOM_NEW_OPTION) {
     delete stored.customName;
     delete stored.scriptHash;
     delete stored.customJsonLength;
+    delete stored.customJson;
+    delete stored.customChunks;
     delete stored.compression;
     delete stored.compressedLength;
     delete stored.compressedByteLength;
+    delete stored.compressedBase64;
+    delete stored.compressedChunks;
+    delete stored.chunkCount;
+    delete stored.chunk0;
+    delete stored.extraChunkId;
+    delete stored.extraChunkData;
   }
 
   return stored;
@@ -463,7 +515,28 @@ function readConfigFromTwitch() {
   }
 
   try {
-    return JSON.parse(configStr);
+    const parsed = JSON.parse(configStr);
+    if (parsed && typeof parsed === 'object' && parsed.extraChunkId) {
+      const globalStr = window.Twitch?.ext?.configuration?.global?.content;
+      if (globalStr) {
+        try {
+          const globalPayload = JSON.parse(globalStr);
+          if (globalPayload
+            && typeof globalPayload === 'object'
+            && globalPayload.id === parsed.extraChunkId
+            && (globalPayload.channelId === undefined
+              || !twitchAuth.channelId
+              || globalPayload.channelId === twitchAuth.channelId)
+            && typeof globalPayload.chunk === 'string') {
+            parsed.extraChunkData = globalPayload.chunk;
+          }
+        } catch (err) {
+          console.warn('解析 Twitch 全域設定失敗:', err);
+        }
+      }
+    }
+
+    return parsed;
   } catch (err) {
     console.error('解析 Twitch 設定失敗:', err);
     return null;
@@ -485,7 +558,14 @@ function setupTwitchListeners() {
     }
   };
 
-  twitchExt.onAuthorized(() => {
+  twitchExt.onAuthorized(auth => {
+    twitchAuthorized = true;
+    twitchAuth = {
+      channelId: auth?.channelId || null,
+      clientId: auth?.clientId || null,
+      token: auth?.token || null,
+      userId: auth?.userId || null
+    };
     applyCurrentConfig().catch(err => {
       console.error('套用 Twitch 授權設定時發生錯誤:', err);
     });
@@ -689,15 +769,13 @@ saveButton.addEventListener('click', async () => {
     saveButton.disabled = true;
 
     let compressed = null;
-    let compressedChunks = [];
-    let usedCompression = false;
+    let segments = [];
 
     try {
       showStatus('🗜️ 正在壓縮自訂劇本...', 'info');
       compressed = await compressCustomJson(normalizedJson);
       if (compressed && typeof compressed.base64 === 'string' && compressed.base64) {
-        compressedChunks = chunkCompressedText(compressed.base64);
-        usedCompression = compressedChunks.length > 0;
+        segments = chunkCompressedText(compressed.base64);
       }
     } catch (err) {
       console.warn('壓縮自訂劇本時發生錯誤，將改用未壓縮模式:', err);
@@ -712,7 +790,15 @@ saveButton.addEventListener('click', async () => {
       customJsonLength: normalizedJson.length
     };
 
-    if (usedCompression) {
+    const hasCompressedData = compressed && typeof compressed.base64 === 'string' && compressed.base64;
+
+    if (hasCompressedData && segments.length > 0) {
+      if (segments.length > MAX_SEGMENT_COUNT) {
+        showStatus('❌ 壓縮後的自訂劇本仍超過 Twitch 允許的兩個儲存區塊（約 9KB），請刪減內容', 'error');
+        saveButton.disabled = false;
+        return;
+      }
+
       const mode = compressed.mode || COMPRESSION_MODE;
       storageConfig.compression = mode;
       storageConfig.compressedByteLength = typeof compressed.compressedByteLength === 'number'
@@ -720,33 +806,50 @@ saveButton.addEventListener('click', async () => {
         : (compressed.compressedLength || compressed.base64.length);
       storageConfig.compressedLength = compressed.base64.length;
 
-      if (compressedChunks.length <= 1) {
-        payload = {
-          ...storageConfig,
-          compressedBase64: compressed.base64
-        };
+      if (segments.length === 1) {
+        storageConfig.compressedBase64 = compressed.base64;
       } else {
-        payload = {
-          ...storageConfig,
-          compressedChunks
-        };
+        if (!twitchAuth.channelId) {
+          showStatus('❌ 需要在 Twitch 擴充環境中授權後才能儲存大型自訂劇本', 'error');
+          saveButton.disabled = false;
+          return;
+        }
+
+        const extraChunkId = `${twitchAuth.channelId}:${scriptVersion}`;
+        storageConfig.chunkCount = segments.length;
+        storageConfig.chunk0 = segments[0];
+        storageConfig.extraChunkId = extraChunkId;
+        storageConfig.extraChunkData = segments[1];
       }
     } else {
       const customChunks = chunkCompressedText(normalizedJson);
-      payload = {
-        ...storageConfig,
-        customJson: customChunks.length <= 1 ? normalizedJson : undefined,
-        customChunks: customChunks.length > 1 ? customChunks : undefined
-      };
-
-      if (!payload.customJson) {
-        delete payload.customJson;
+      if (customChunks.length > MAX_SEGMENT_COUNT) {
+        showStatus('❌ 自訂劇本過大且無法壓縮，請刪減內容後重試', 'error');
+        saveButton.disabled = false;
+        return;
       }
-      if (!payload.customChunks) {
-        delete payload.customChunks;
+
+      if (customChunks.length <= 1) {
+        storageConfig.customJson = normalizedJson;
+      } else {
+        storageConfig.customChunks = customChunks;
       }
 
       showStatus('⚠️ 無法使用壓縮，已改用分段儲存', 'info');
+    }
+
+    payload = { ...storageConfig };
+    if (payload.extraChunkData) {
+      delete payload.extraChunkData;
+    }
+    if (!payload.customJson) {
+      delete payload.customJson;
+    }
+    if (!payload.customChunks) {
+      delete payload.customChunks;
+    }
+    if (!payload.compressedBase64) {
+      delete payload.compressedBase64;
     }
   }
 
@@ -764,7 +867,44 @@ saveButton.addEventListener('click', async () => {
       return;
     }
 
+    let globalPayloadString = null;
+    const requiresGlobal = Boolean(storageConfig?.extraChunkData && storageConfig?.extraChunkId);
+
+    if (requiresGlobal) {
+      const globalPayload = {
+        id: storageConfig.extraChunkId,
+        chunk: storageConfig.extraChunkData,
+        compression: storageConfig.compression || COMPRESSION_MODE,
+        version: storageConfig.scriptVersion,
+        channelId: twitchAuth.channelId || null,
+        updatedAt: timestamp
+      };
+      globalPayloadString = JSON.stringify(globalPayload);
+
+      if (globalPayloadString.length > TWITCH_SEGMENT_LIMIT) {
+        showStatus('❌ 分段資料仍超過 5KB 限制，請刪減劇本內容', 'error');
+        return;
+      }
+    } else if (typeof window.Twitch?.ext?.configuration?.global?.content === 'string') {
+      const clearedPayload = {
+        id: '',
+        chunk: '',
+        channelId: twitchAuth.channelId || null,
+        clearedAt: timestamp
+      };
+      globalPayloadString = JSON.stringify(clearedPayload);
+    }
+
     const payloadString = JSON.stringify(payload || storageConfig);
+    if (payloadString.length > TWITCH_SEGMENT_LIMIT) {
+      showStatus('❌ 儲存內容超過 5KB 限制，請刪減劇本或縮短描述', 'error');
+      return;
+    }
+
+    if (globalPayloadString) {
+      window.Twitch.ext.configuration.set('global', '1', globalPayloadString);
+    }
+
     window.Twitch.ext.configuration.set('broadcaster', '1', payloadString);
     if (window.Twitch.ext.send) {
       try {
