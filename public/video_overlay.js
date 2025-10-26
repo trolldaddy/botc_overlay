@@ -1,24 +1,39 @@
+(function() {
+  'use strict';
+
+  const ready = () => {
     const leftPanel = document.getElementById('leftPanel');
     const rightPanel = document.getElementById('rightPanel');
     const toggleButton = document.getElementById('toggleButton');
     const globalTooltip = document.getElementById('globalTooltip');
+
+    if (!leftPanel || !rightPanel || !toggleButton || !globalTooltip) {
+      return;
+    }
+
     let isVisible = false;
+    let referencePromise;
 
-    toggleButton.addEventListener('click', () => {
-      isVisible = !isVisible;
-      leftPanel.classList.toggle('show', isVisible);
-      rightPanel.classList.toggle('show', isVisible);
-    });
+    const getReferenceData = () => {
+      if (!referencePromise) {
+        referencePromise = fetch('/EVERY_SINGLE_ROLE_with_chinese_abilities.json')
+          .then(r => r.json())
+          .catch(err => {
+            console.error('載入角色資料失敗', err);
+            referencePromise = undefined;
+            throw err;
+          });
+      }
+      return referencePromise;
+    };
 
-    
-    async function loadRolesFromList(roleList) {
-      const referenceList = await fetch('/EVERY_SINGLE_ROLE_with_chinese_abilities.json').then(r => r.json());
-      const referenceMap = Object.fromEntries(referenceList.map(r => [r.id, r]));
+    const renderRoles = async (roleList) => {
+      if (!Array.isArray(roleList)) {
+        return;
+      }
 
-      document.getElementById('townsfolkGrid').innerHTML = '';
-      document.getElementById('outsiderGrid').innerHTML = '';
-      document.getElementById('minionGrid').innerHTML = '';
-      document.getElementById('demonGrid').innerHTML = '';
+      const referenceList = await getReferenceData();
+      const referenceMap = Object.fromEntries(referenceList.map(role => [role.id, role]));
 
       const grids = {
         townsfolk: document.getElementById('townsfolkGrid'),
@@ -27,103 +42,145 @@
         demon: document.getElementById('demonGrid')
       };
 
+      Object.values(grids).forEach(grid => {
+        if (grid) {
+          grid.innerHTML = '';
+        }
+      });
+
       roleList.forEach(role => {
         const ref = referenceMap[role.id];
-        if (!ref) return;
-
-        const displayName = ref.name_zh || ref.name || role.id;
-        const imgUrl = ref.image || '';
-        const ability = ref.ability || '';
-        const tooltipDirection = ref.team === 'townsfolk' ? 'right' : 'left';
+        if (!ref) {
+          return;
+        }
 
         const container = document.createElement('div');
         container.className = 'role';
 
         const img = document.createElement('img');
-        img.src = imgUrl;
-        img.alt = displayName;
+        img.src = ref.image || '';
+        img.alt = ref.name_zh || ref.name || role.id;
 
         const label = document.createElement('div');
-        label.textContent = displayName;
+        label.textContent = ref.name_zh || ref.name || role.id;
 
         container.appendChild(img);
         container.appendChild(label);
 
         container.addEventListener('mouseenter', () => {
-          globalTooltip.textContent = ability;
+          globalTooltip.textContent = ref.ability || '';
           globalTooltip.style.display = 'block';
+
           const rect = container.getBoundingClientRect();
-          let offsetX = tooltipDirection === 'left'
+          const alignLeft = ref.team !== 'townsfolk';
+          const offsetX = alignLeft
             ? Math.max(10, rect.left - globalTooltip.offsetWidth - 10)
             : Math.min(window.innerWidth - globalTooltip.offsetWidth - 10, rect.right + 10);
           const offsetY = rect.top + window.scrollY;
           globalTooltip.style.left = `${offsetX}px`;
           globalTooltip.style.top = `${offsetY}px`;
         });
+
         container.addEventListener('mouseleave', () => {
           globalTooltip.style.display = 'none';
         });
 
-        if (grids[ref.team]) {
-          grids[ref.team].appendChild(container);
+        const grid = grids[ref.team];
+        if (grid) {
+          grid.appendChild(container);
         }
       });
-    }
+    };
 
-    
-function handleConfigChange() {
-  console.log("🔁 手動觸發重新載入");
-  const configStr = window.Twitch.ext.configuration.broadcaster?.content;
-  if (!configStr) return;
-  try {
-    const config = JSON.parse(configStr);
-    if (config.selectedScript === '__custom__' && config.customJson) {
-      const customList = JSON.parse(config.customJson);
-      loadRolesFromList(customList);
-    } else if (config.selectedScript) {
-      fetch(`/Allscript/${config.selectedScript}`)
-        .then(r => r.json())
-        .then(loadRolesFromList)
-        .catch(() => fetch('/Allscript/trouble_brewing.json').then(r => r.json()).then(loadRolesFromList));
-    } else {
-      fetch('/Allscript/trouble_brewing.json').then(r => r.json()).then(loadRolesFromList);
-    }
-  } catch (e) {
-    console.error('解析設定錯誤:', e);
-    fetch('/Allscript/trouble-brewing.json').then(r => r.json()).then(loadRolesFromList);
-  }
-}
-
-   async function init() {
-      if (window.Twitch && window.Twitch.ext) {
-        window.Twitch.ext.onAuthorized(() => {
-          const cfgStr = window.Twitch.ext.configuration?.broadcaster?.content;
-          try {
-            const cfg = JSON.parse(cfgStr || '{}');
-            if (cfg.customJson) {
-              const parsed = JSON.parse(cfg.customJson);
-              loadRolesFromList(parsed);
-            } else if (cfg.selectedScript) {
-              fetch(`/${cfg.selectedScript}`)
-                .then(r => r.json())
-                .then(loadRolesFromList);
-            } else {
-              fetch('/Allscript/trouble_brewing.json')
-                .then(r => r.json())
-                .then(loadRolesFromList);
-            }
-          } catch (e) {
-            console.error('解析設定失敗，使用 fallback：', e);
-            fetch('/Allscript/trouble_brewing.json')
-              .then(r => r.json())
-              .then(loadRolesFromList);
-          }
-        });
-      } else {
-        fetch('/Allscript/trouble_brewing.json')
-          .then(r => r.json())
-          .then(loadRolesFromList);
+    const resolveScriptUrl = (name) => {
+      if (!name) {
+        return '/Allscript/trouble_brewing.json';
       }
-    }
+      if (name.startsWith('http://') || name.startsWith('https://')) {
+        return name;
+      }
+      if (name.startsWith('/')) {
+        return name;
+      }
+      if (name.startsWith('Allscript/')) {
+        return `/${name}`;
+      }
+      return `/Allscript/${name}`;
+    };
 
-    init();
+    const loadScriptByName = (name) => {
+      return fetch(resolveScriptUrl(name))
+        .then(r => r.json())
+        .then(renderRoles);
+    };
+
+    const loadDefaultScript = () => {
+      loadScriptByName('trouble_brewing.json').catch(err => {
+        console.error('載入預設劇本失敗', err);
+      });
+    };
+
+    const applyConfig = (config) => {
+      if (!config || !config.selectedScript) {
+        loadDefaultScript();
+        return;
+      }
+
+      if (config.selectedScript === '__custom__' && config.customJson) {
+        const decompressed = LZString.decompressFromBase64(config.customJson);
+        if (decompressed) {
+          try {
+            const parsed = JSON.parse(decompressed);
+            renderRoles(parsed);
+            return;
+          } catch (err) {
+            console.error('自訂劇本解析失敗', err);
+          }
+        } else {
+          console.warn('自訂劇本解壓縮失敗');
+        }
+      }
+
+      loadScriptByName(config.selectedScript).catch(err => {
+        console.error('載入指定劇本失敗', err);
+        loadDefaultScript();
+      });
+    };
+
+    const handleConfigChange = () => {
+      const configStr = window.Twitch?.ext?.configuration?.broadcaster?.content;
+      if (!configStr) {
+        loadDefaultScript();
+        return;
+      }
+
+      try {
+        const config = JSON.parse(configStr);
+        applyConfig(config);
+      } catch (err) {
+        console.error('解析設定錯誤', err);
+        loadDefaultScript();
+      }
+    };
+
+    toggleButton.addEventListener('click', () => {
+      isVisible = !isVisible;
+      leftPanel.classList.toggle('show', isVisible);
+      rightPanel.classList.toggle('show', isVisible);
+    });
+
+    if (window.Twitch?.ext) {
+      window.Twitch.ext.onAuthorized(handleConfigChange);
+      window.Twitch.ext.configuration?.onChanged(handleConfigChange);
+      handleConfigChange();
+    } else {
+      loadDefaultScript();
+    }
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', ready);
+  } else {
+    ready();
+  }
+})();

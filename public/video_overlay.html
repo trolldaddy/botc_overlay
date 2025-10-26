@@ -3,94 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <title>BOTC Overlay</title>
+    <link rel="stylesheet" href="video_overlay.css">
     <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
-    <script>
-        var LZString = function () { var r = String.fromCharCode, o = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=", n = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-$", e = {}; function t(r, o) { if (!e[r]) { e[r] = {}; for (var n = 0; n < r.length; n++)e[r][r.charAt(n)] = n } return e[r][o] } var i = { compressToBase64: function (r) { if (null == r) return ""; var n = i._compress(r, 6, function (r) { return o.charAt(r) }); switch (n.length % 4) { default: case 0: return n; case 1: return n + "==="; case 2: return n + "=="; case 3: return n + "=" } }, decompressFromBase64: function (r) { return null == r ? "" : "" == r ? null : i._decompress(r.length, 32, function (n) { return t(o, r.charAt(n)) }) }, compressToUTF16: function (o) { return null == o ? "" : i._compress(o, 15, function (o) { return r(o + 32) }) + " " }, decompressFromUTF16: function (r) { return null == r ? "" : "" == r ? null : i._decompress(r.length, 16384, function (o) { return r.charCodeAt(o) - 32 }) }, compressToUint8Array: function (r) { for (var o = i.compress(r), n = new Uint8Array(2 * o.length), e = 0, t = o.length; e < t; e++) { var s = o.charCodeAt(e); n[2 * e] = s >>> 8, n[2 * e + 1] = s % 256 } return n }, decompressFromUint8Array: function (o) { if (null == o) return i.decompress(o); for (var n = new Array(o.length / 2), e = 0, t = n.length; e < t; e++)n[e] = 256 * o[2 * e] + o[2 * e + 1]; var s = []; return n.forEach(function (o) { s.push(r(o)) }), i.decompress(s.join("")) }, compressToEncodedURIComponent: function (r) { return null == r ? "" : i._compress(r, 6, function (r) { return n.charAt(r) }) }, decompressFromEncodedURIComponent: function (r) { return null == r ? "" : "" == r ? null : (r = r.replace(/ /g, "+"), i._decompress(r.length, 32, function (o) { return t(n, r.charAt(o)) })) }, compress: function (o) { return i._compress(o, 16, function (o) { return r(o) }) }, _compress: function (r, o, n) { if (null == r) return ""; var e, t, i, s = {}, u = {}, a = "", p = "", c = "", l = 2, f = 3, h = 2, d = [], m = 0, v = 0; for (i = 0; i < r.length; i += 1)if (a = r.charAt(i), Object.prototype.hasOwnProperty.call(s, a) || (s[a] = f++, u[a] = !0), p = c + a, Object.prototype.hasOwnProperty.call(s, p)) c = p; else { if (Object.prototype.hasOwnProperty.call(u, c)) { if (c.charCodeAt(0) < 256) { for (e = 0; e < h; e++)m <<= 1, v == o - 1 ? (v = 0, d.push(n(m)), m = 0) : v++; for (t = c.charCodeAt(0), e = 0; e < 8; e++)m = m << 1 | 1 & t, v == o - 1 ? (v = 0, d.push(n(m)), m = 0) : v++, t >>= 1 } else { for (t = 1, e = 0; e < h; e++)m = m << 1 | t, v == o - 1 ? (v = 0, d.push(n(m)), m = 0) : v++, t = 0; for (t = c.charCodeAt(0), e = 0; e < 16; e++)m = m << 1 | 1 & t, v == o - 1 ? (v = 0, d.push(n(m)), m = 0) : v++, t >>= 1 } 0 == --l && (l = Math.pow(2, h), h++), delete u[c] } else for (t = s[c], e = 0; e < h; e++)m = m << 1 | 1 & t, v == o - 1 ? (v = 0, d.push(n(m)), m = 0) : v++, t >>= 1; 0 == --l && (l = Math.pow(2, h), h++), s[p] = f++, c = String(a) } if ("" !== c) { if (Object.prototype.hasOwnProperty.call(u, c)) { if (c.charCodeAt(0) < 256) { for (e = 0; e < h; e++)m <<= 1, v == o - 1 ? (v = 0, d.push(n(m)), m = 0) : v++; for (t = c.charCodeAt(0), e = 0; e < 8; e++)m = m << 1 | 1 & t, v == o - 1 ? (v = 0, d.push(n(m)), m = 0) : v++, t >>= 1 } else { for (t = 1, e = 0; e < h; e++)m = m << 1 | t, v == o - 1 ? (v = 0, d.push(n(m)), m = 0) : v++, t = 0; for (t = c.charCodeAt(0), e = 0; e < 16; e++)m = m << 1 | 1 & t, v == o - 1 ? (v = 0, d.push(n(m)), m = 0) : v++, t >>= 1 } 0 == --l && (l = Math.pow(2, h), h++), delete u[c] } else for (t = s[c], e = 0; e < h; e++)m = m << 1 | 1 & t, v == o - 1 ? (v = 0, d.push(n(m)), m = 0) : v++, t >>= 1; 0 == --l && (l = Math.pow(2, h), h++) } for (t = 2, e = 0; e < h; e++)m = m << 1 | 1 & t, v == o - 1 ? (v = 0, d.push(n(m)), m = 0) : v++, t >>= 1; for (; ;) { if (m <<= 1, v == o - 1) { d.push(n(m)); break } v++ } return d.join("") }, decompress: function (r) { return null == r ? "" : "" == r ? null : i._decompress(r.length, 32768, function (o) { return r.charCodeAt(o) }) }, _decompress: function (o, n, e) { var t, i, s, u, a, p, c, l = [], f = 4, h = 4, d = 3, m = "", v = [], g = { val: e(0), position: n, index: 1 }; for (t = 0; t < 3; t += 1)l[t] = t; for (s = 0, a = Math.pow(2, 2), p = 1; p != a;)u = g.val & g.position, g.position >>= 1, 0 == g.position && (g.position = n, g.val = e(g.index++)), s |= (u > 0 ? 1 : 0) * p, p <<= 1; switch (s) { case 0: for (s = 0, a = Math.pow(2, 8), p = 1; p != a;)u = g.val & g.position, g.position >>= 1, 0 == g.position && (g.position = n, g.val = e(g.index++)), s |= (u > 0 ? 1 : 0) * p, p <<= 1; c = r(s); break; case 1: for (s = 0, a = Math.pow(2, 16), p = 1; p != a;)u = g.val & g.position, g.position >>= 1, 0 == g.position && (g.position = n, g.val = e(g.index++)), s |= (u > 0 ? 1 : 0) * p, p <<= 1; c = r(s); break; case 2: return "" }for (l[3] = c, i = c, v.push(c); ;) { if (g.index > o) return ""; for (s = 0, a = Math.pow(2, d), p = 1; p != a;)u = g.val & g.position, g.position >>= 1, 0 == g.position && (g.position = n, g.val = e(g.index++)), s |= (u > 0 ? 1 : 0) * p, p <<= 1; switch (c = s) { case 0: for (s = 0, a = Math.pow(2, 8), p = 1; p != a;)u = g.val & g.position, g.position >>= 1, 0 == g.position && (g.position = n, g.val = e(g.index++)), s |= (u > 0 ? 1 : 0) * p, p <<= 1; l[h++] = r(s), c = h - 1, f--; break; case 1: for (s = 0, a = Math.pow(2, 16), p = 1; p != a;)u = g.val & g.position, g.position >>= 1, 0 == g.position && (g.position = n, g.val = e(g.index++)), s |= (u > 0 ? 1 : 0) * p, p <<= 1; l[h++] = r(s), c = h - 1, f--; break; case 2: return v.join("") }if (0 == f && (f = Math.pow(2, d), d++), l[c]) m = l[c]; else { if (c !== h) return null; m = i + i.charAt(0) } v.push(m), l[h++] = i + m.charAt(0), i = m, 0 == --f && (f = Math.pow(2, d), d++) } } }; return i }(); "function" == typeof define && define.amd ? define(function () { return LZString }) : "undefined" != typeof module && null != module ? module.exports = LZString : "undefined" != typeof angular && null != angular && angular.module("LZString", []).factory("LZString", function () { return LZString });
-    </script>
-    <style>
-        body {
-            margin: 0;
-            background: transparent;
-            font-family: "Microsoft JhengHei", sans-serif;
-        }
-
-        #toggleButton {
-            position: fixed;
-            bottom: 7rem;
-            background: #000;
-            color: #fff;
-            padding: 10px 20px;
-            border-radius: 5px;
-            z-index: 1001;
-        }
-
-        #toggleButton {
-            left: 50%;
-            transform: translateX(-50%);
-        }
-
-        .panel {
-            position: fixed;
-            top: 5rem;
-            bottom: 7rem;
-            width: 300px;
-            background: rgba(0,0,0,0.85);
-            overflow-y: auto;
-            padding: 10px;
-            transform: translateX(-100%);
-            transition: transform 0.3s ease;
-            color: #fff;
-        }
-
-            .panel.right {
-                right: 0;
-                left: auto;
-                transform: translateX(100%);
-            }
-
-            .panel.show {
-                transform: translateX(0);
-            }
-
-        .role-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-        }
-
-        .role {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            position: relative;
-        }
-
-            .role img {
-                width: 95px;
-                height: 95px;
-                display: block;
-            }
-
-        .category-title {
-            margin-top: 10px;
-            border-bottom: 1px solid #fff;
-            padding-bottom: 5px;
-            font-weight: bold;
-            font-size: 20px;
-        }
-
-        #globalTooltip {
-            display: none;
-            position: fixed;
-            background: rgba(0, 0, 0, 0.85);
-            color: #fff;
-            border-radius: 5px;
-            padding: 5px 10px;
-            white-space: normal;
-            max-width: 90vw;
-            z-index: 10000;
-        }
-    </style>
+    <script src="lz-string.min.js" defer></script>
+    <script src="video_overlay.js" defer></script>
 </head>
 <body>
     <button id="toggleButton">顯示劇本Show Script</button>
@@ -98,7 +14,7 @@
         <div class="category-title">鎮民</div>
         <div class="role-grid" id="townsfolkGrid"></div>
     </div>
-    <div id="rightPanel" class="panel right">
+    <div id="rightPanel" class="panel panel--right">
         <div class="category-title">外來者</div>
         <div class="role-grid" id="outsiderGrid"></div>
         <div class="category-title">爪牙</div>
@@ -106,140 +22,6 @@
         <div class="category-title">惡魔</div>
         <div class="role-grid" id="demonGrid"></div>
     </div>
-    <div id="globalTooltip"></div>
-    <script>
-        const leftPanel = document.getElementById('leftPanel');
-        const rightPanel = document.getElementById('rightPanel');
-        const toggleButton = document.getElementById('toggleButton');
-        const globalTooltip = document.getElementById('globalTooltip');
-        let isVisible = false;
-
-        toggleButton.addEventListener('click', () => {
-            isVisible = !isVisible;
-            leftPanel.classList.toggle('show', isVisible);
-            rightPanel.classList.toggle('show', isVisible);
-        });
-
-
-        async function loadRolesFromList(roleList) {
-            const referenceList = await fetch('/EVERY_SINGLE_ROLE_with_chinese_abilities.json').then(r => r.json());
-            const referenceMap = Object.fromEntries(referenceList.map(r => [r.id, r]));
-
-            document.getElementById('townsfolkGrid').innerHTML = '';
-            document.getElementById('outsiderGrid').innerHTML = '';
-            document.getElementById('minionGrid').innerHTML = '';
-            document.getElementById('demonGrid').innerHTML = '';
-
-            const grids = {
-                townsfolk: document.getElementById('townsfolkGrid'),
-                outsider: document.getElementById('outsiderGrid'),
-                minion: document.getElementById('minionGrid'),
-                demon: document.getElementById('demonGrid')
-            };
-
-            roleList.forEach(role => {
-                const ref = referenceMap[role.id];
-                if (!ref) return;
-
-                const displayName = ref.name_zh || ref.name || role.id;
-                const imgUrl = ref.image || '';
-                const ability = ref.ability || '';
-                const tooltipDirection = ref.team === 'townsfolk' ? 'right' : 'left';
-
-                const container = document.createElement('div');
-                container.className = 'role';
-
-                const img = document.createElement('img');
-                img.src = imgUrl;
-                img.alt = displayName;
-
-                const label = document.createElement('div');
-                label.textContent = displayName;
-
-                container.appendChild(img);
-                container.appendChild(label);
-
-                container.addEventListener('mouseenter', () => {
-                    globalTooltip.textContent = ability;
-                    globalTooltip.style.display = 'block';
-                    const rect = container.getBoundingClientRect();
-                    let offsetX = tooltipDirection === 'left'
-                        ? Math.max(10, rect.left - globalTooltip.offsetWidth - 10)
-                        : Math.min(window.innerWidth - globalTooltip.offsetWidth - 10, rect.right + 10);
-                    const offsetY = rect.top + window.scrollY;
-                    globalTooltip.style.left = `${offsetX}px`;
-                    globalTooltip.style.top = `${offsetY}px`;
-                });
-                container.addEventListener('mouseleave', () => {
-                    globalTooltip.style.display = 'none';
-                });
-
-                if (grids[ref.team]) {
-                    grids[ref.team].appendChild(container);
-                }
-            });
-        }
-
-
-        function handleConfigChange() {
-            console.log("🔁 手動觸發重新載入");
-            const configStr = window.Twitch.ext.configuration.broadcaster?.content;
-            if (!configStr) return;
-            try {
-                const config = JSON.parse(configStr);
-                if (config.selectedScript === '__custom__' && config.customJson) {
-                    const jsonStr = LZString.decompressFromBase64(config.customJson);
-                    const customList = JSON.parse(jsonStr);
-                    loadRolesFromList(customList);
-                } else if (config.selectedScript) {
-                    fetch(`/Allscript/${config.selectedScript}`)
-                        .then(r => r.json())
-                        .then(loadRolesFromList)
-                        .catch(() => fetch('/Allscript/trouble_brewing.json').then(r => r.json()).then(loadRolesFromList));
-                } else {
-                    fetch('/Allscript/trouble_brewing.json').then(r => r.json()).then(loadRolesFromList);
-                }
-            } catch (e) {
-                console.error('解析設定錯誤:', e);
-                fetch('/Allscript/trouble-brewing.json').then(r => r.json()).then(loadRolesFromList);
-            }
-        }
-
-        async function init() {
-            if (window.Twitch && window.Twitch.ext) {
-                window.Twitch.ext.onAuthorized(() => {
-                    const cfgStr = window.Twitch.ext.configuration?.broadcaster?.content;
-                    try {
-                        const cfg = JSON.parse(cfgStr || '{}');
-                        if (cfg.customJson) {
-                            const jsonStr = LZString.decompressFromBase64(config.customJson);
-                            const parsed = JSON.parse(jsonStr);
-                            loadRolesFromList(parsed);
-                        } else if (cfg.selectedScript) {
-                            fetch(`/${cfg.selectedScript}`)
-                                .then(r => r.json())
-                                .then(loadRolesFromList);
-                        } else {
-                            fetch('/Allscript/trouble_brewing.json')
-                                .then(r => r.json())
-                                .then(loadRolesFromList);
-                        }
-                    } catch (e) {
-                        console.error('解析設定失敗，使用 fallback：', e);
-                        fetch('/Allscript/trouble_brewing.json')
-                            .then(r => r.json())
-                            .then(loadRolesFromList);
-                    }
-                });
-            } else {
-                fetch('/Allscript/trouble_brewing.json')
-                    .then(r => r.json())
-                    .then(loadRolesFromList);
-            }
-        }
-
-        init();
-
-    </script>
+    <div id="globalTooltip" role="tooltip"></div>
 </body>
 </html>
