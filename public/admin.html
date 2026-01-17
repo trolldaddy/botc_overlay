@@ -6,70 +6,35 @@
   <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
   <style>
     body { background: #111; color: white; font-family: "Microsoft JhengHei", sans-serif; padding: 20px; }
-    label, select, textarea, button { display: block; margin: 10px 0; width: 100%; }
+    label, select, textarea, button, input { display: block; margin: 10px 0; width: 100%; }
     textarea { height: 200px; font-family: monospace; }
     #customJsonBlock { display: none; }
+    .custom-actions { display: flex; gap: 10px; margin-top: 10px; }
+    .custom-actions button { flex: 1; }
   </style>
 </head>
 <body>
   <h1>設定 BOTC Overlay 擴充功能</h1>
+  <p id="storageNotice" style="color: #9ec5fe; margin-bottom: 20px;"></p>
   <label for="scriptList">選擇劇本：</label>
   <select id="scriptList"></select>
 
   <div id="customJsonBlock">
+    <label for="customName">自訂劇本名稱：</label>
+    <input id="customName" type="text" placeholder="請輸入便於辨識的名稱" />
+
     <label for="customJson">自訂角色 JSON：</label>
     <textarea id="customJson" placeholder="貼上符合 Blood on the Clocktower 格式的角色 JSON 清單"></textarea>
+
+    <div class="custom-actions">
+      <button type="button" id="saveCustomButton">儲存自訂劇本</button>
+      <button type="button" id="deleteCustomButton" disabled>刪除目前自訂劇本</button>
+    </div>
   </div>
 
   <button id="saveButton">儲存設定</button>
   <div id="statusMessage" style="color: lightgreen; margin-top: 10px;"></div>
 
-  <script>
-    const scriptListEl = document.getElementById('scriptList');
-    const customJsonBlock = document.getElementById('customJsonBlock');
-    const customJsonEl = document.getElementById('customJson');
-    const saveButton = document.getElementById('saveButton');
-
-  fetch('/Allscript/scripts.json')
-      .then(res => res.json())
-      .then(scripts => {
-        scriptListEl.innerHTML = `<option value="">-- 請選擇劇本 --</option>` +
-          scripts.map(f => `<option value="${f}">${f}</option>`).join('') +
-          `<option value="__custom__">自訂劇本</option>`;
-      });
-
-    scriptListEl.addEventListener('change', () => {
-      customJsonBlock.style.display = scriptListEl.value === '__custom__' ? 'block' : 'none';
-    });
-
-  saveButton.addEventListener('click', () => {
-  const selectedScript = scriptListEl.value;
-  const customJson = customJsonEl.value.trim();
-
-  const content = selectedScript === '__custom__'
-    ? { selectedScript, customJson ,_timestamp: Date.now() }
-    : { selectedScript,_timestamp: Date.now() };
-
-  if (window.Twitch?.ext?.configuration) {
-    window.Twitch.ext.configuration.set('broadcaster', '1', JSON.stringify(content));
-    document.getElementById('statusMessage').textContent = '✅ 設定已儲存！請切換 Overlay 測試結果';
-  } else {
-    document.getElementById('statusMessage').textContent = '❌ 無法存取 Twitch Extension API';
-  }
-});
-
-
-    if (window.Twitch?.ext) {
-      window.Twitch.ext.configuration.onChanged(() => {
-        const configStr = window.Twitch.ext.configuration.broadcaster?.content;
-        try {
-          const config = JSON.parse(configStr || '{}');
-          scriptListEl.value = config.selectedScript || '';
-          customJsonEl.value = config.customJson || '';
-          customJsonBlock.style.display = config.selectedScript === '__custom__' ? 'block' : 'none';
-        } catch {}
-      });
-    }
-  </script>
+  <script src="admin.js"></script>
 </body>
 </html>
